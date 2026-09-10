@@ -1,0 +1,40 @@
+# 个人数据备份，绝不入库
+*.json.bak
+大胃袋备份-*.json
+大胃袋-*.csv
+
+# 图标生成的中间产物（tools/make-icons.py 本身要提交）
+*.tmp.png
+tools/out/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 依赖
+node_modules/
+__pycache__/
+*.log
+
+# Android 构建产物（android/.gitignore 里已有一份，这里再兜一层）
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+*.apk
+*.aab
+*.jks
+*.keystore
+local.properties
+
+# 本地笔记
+NOTES.md
+TODO.local.md

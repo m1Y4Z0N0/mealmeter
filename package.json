@@ -1,0 +1,20 @@
+{
+  "name": "mealmeter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "大胃袋计算器 MealMeter · 伙食费结构记录（PWA + Android 壳）",
+  "scripts": {
+    "check": "node tools/check.js",
+    "serve": "npx --yes http-server www -p 8080 -c-1",
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug",
+    "apk:release": "cap sync android && cd android && ./gradlew assembleRelease",
+    "icons": "python tools/make-icons.py <图片路径>"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1"
+  }
+}

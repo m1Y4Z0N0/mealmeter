@@ -1,0 +1,28 @@
+{
+  "name": "大胃袋计算器 · MealMeter",
+  "short_name": "大胃袋",
+  "description": "记录每一笔伙食费，看清钱花在快餐、炸鸡还是零食饮料上。纯本地存储，无需登录，离线可用。",
+  "id": "/mealmeter/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F9F9FB",
+  "theme_color": "#F9F9FB",
+  "lang": "zh-CN",
+  "categories": ["finance", "food", "lifestyle", "utilities"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "记一笔",
+      "short_name": "记账",
+      "description": "直接打开记账面板",
+      "url": "./?action=add",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

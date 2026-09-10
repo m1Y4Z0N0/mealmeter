@@ -1,0 +1,13 @@
+{
+  "appId": "com.mealmeter.app",
+  "appName": "MealMeter",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

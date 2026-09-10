@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>大胃袋计算器 · MealMeter</title>
+<meta name="theme-color" content="#f4f5f7">
+<meta name="description" content="记录每一笔伙食费，看清钱花在快餐、炸鸡还是零食饮料上。纯本地存储，无需登录。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f4f5f7; --card:#fff; --text:#16181d; --dim:#858b95; --faint:#a8adb6;
+  --line:#e9ebef; --ink:#16181d; --onink:#fff; --track:#eef0f3; --soft:#f7f8fa;
+  --danger:#c0392b; --ok:#2f8f5b; --r:16px;
+  --acc:#3c6ce4; --acc-text:#3c6ce4; --acc-soft:#ebf1fe; --acc2:#fccc6c;
+}
+html[data-theme="dark"]{
+  --bg:#101215; --card:#191c21; --text:#eef1f5; --dim:#98a0ab; --faint:#6e7681;
+  --line:#282d35; --ink:#eef1f5; --onink:#14171b; --track:#282d35; --soft:#21252b;
+  --danger:#e2776a; --ok:#5bbd8a;
+  --acc:#3c6ce4; --acc-text:#7da2f0; --acc-soft:#1f2a47; --acc2:#fccc6c;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(92px + env(safe-area-inset-bottom));
+  transition:background .2s,color .2s;
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+button{font-family:inherit;font-size:inherit;border:0;background:none;color:inherit;cursor:pointer;padding:0}
+input{font-family:inherit}
+
+header{padding-top:calc(18px + env(safe-area-inset-top))}
+.hd{display:flex;align-items:flex-start;justify-content:space-between}
+.hd-label{font-size:13px;color:var(--dim);margin-bottom:2px}
+.hd-label .dt{color:var(--text);font-weight:500}
+.hd-total{font-size:34px;font-weight:500;letter-spacing:-.5px;line-height:1.15}
+.hd-total .cny{font-size:20px;font-weight:400;margin-right:2px;color:var(--dim)}
+.hd-meta{font-size:12.5px;color:var(--faint);margin-top:4px;min-height:18px}
+.icon-btn{width:38px;height:38px;border-radius:11px;background:var(--card);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--text);flex:0 0 auto;margin-top:6px}
+.icon-btn:active{background:var(--soft)}
+.icon-btn svg{width:19px;height:19px}
+
+.chips{display:flex;gap:8px;margin-top:18px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:7px 15px;border-radius:999px;background:var(--card);border:1px solid var(--line);
+  font-size:13.5px;color:var(--dim);transition:.15s}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.chip.sm{padding:6px 13px;font-size:13px}
+.chip .cd{opacity:.5;margin-left:4px;font-size:11.5px;font-variant-numeric:tabular-nums}
+.pager{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:11px}
+.pg{width:34px;height:34px;border-radius:10px;background:var(--card);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--text);font-size:18px;line-height:1;padding-bottom:3px}
+.pg:active{background:var(--soft)}
+.pg:disabled{opacity:.28}
+.pg-label{font-size:13px;padding:8px 13px;border-radius:10px;font-variant-numeric:tabular-nums;white-space:nowrap;
+  border:1px solid transparent}
+.pg-label:active{background:var(--soft)}
+.pg-label.back{color:var(--dim);border-color:var(--line)}
+.pg-label::after{content:' ▾';font-size:11px;opacity:.5}
+
+/* 日期滚轮选择器 */
+.wheel-wrap{position:relative;margin-top:8px}
+.wheel{position:relative;z-index:1;height:230px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain}
+.wheel::-webkit-scrollbar{display:none}
+.wheel-pad{height:92px}
+.witem{height:46px;display:flex;align-items:center;justify-content:center;font-size:15.5px;color:var(--faint);scroll-snap-align:center;white-space:nowrap;font-variant-numeric:tabular-nums;transition:color .12s,font-size .12s}
+.witem.on{color:var(--acc-text);font-weight:600;font-size:17px}
+.wheel-band{position:absolute;left:6px;right:6px;top:50%;height:46px;transform:translateY(-50%);background:var(--acc-soft);border-radius:11px;pointer-events:none}
+
+.card{background:var(--card);border-radius:var(--r);padding:18px 16px;margin-top:14px}
+.card.tight{padding:8px 6px}
+.card.pad0{padding:16px 18px}
+
+.bud-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.bud-k{font-size:13px;color:var(--dim)}
+.bud-v{font-size:14px;font-variant-numeric:tabular-nums;font-weight:500}
+.bud-big{font-size:30px;font-weight:500;letter-spacing:-.6px;line-height:1.2;margin-top:14px}
+.bud-big .u{font-size:16px;font-weight:400;color:var(--dim);margin-left:2px}
+.bud-sub{font-size:12.5px;color:var(--faint);margin-top:4px}
+.bud-bar{height:7px;border-radius:4px;background:var(--track);overflow:hidden;margin-top:14px}
+.bud-bar i{display:block;height:100%;border-radius:4px;transition:width .3s}
+.warn{color:var(--danger)}
+.bud-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left}
+.bud-cta .t{font-size:14.5px}
+.bud-cta .s{font-size:12.5px;color:var(--faint);margin-top:3px}
+.bud-cta .go{font-size:13px;color:var(--acc-text);flex:0 0 auto}
+
+.donut-wrap{position:relative;width:210px;height:210px;margin:2px auto 4px}
+.donut-wrap svg{width:100%;height:100%;display:block}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.dc-label{font-size:12px;color:var(--dim);white-space:nowrap}
+.dc-amount{font-size:26px;font-weight:500;letter-spacing:-.4px;margin-top:2px}
+.dc-sub{font-size:12px;color:var(--faint);margin-top:2px}
+
+.legend{display:flex;flex-direction:column;gap:2px}
+.row{display:flex;align-items:center;gap:11px;padding:11px 10px;border-radius:11px}
+.row:active{background:var(--soft)}
+.dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.row-main{flex:1;min-width:0}
+.row-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.row-name{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-amt{font-size:14.5px;font-weight:500;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.row-bottom{display:flex;align-items:center;gap:8px;margin-top:5px}
+.bar{flex:1;height:4px;border-radius:2px;background:var(--track);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:2px}
+.row-pct{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:74px;text-align:right}
+.tag{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:5px;vertical-align:1.5px;margin-left:6px;
+  background:rgba(216,90,48,.12);color:#c0562c;font-weight:400}
+html[data-theme="dark"] .tag{background:rgba(226,119,106,.16);color:#e8956f}
+
+.sec-title{font-size:13px;color:var(--dim);margin:22px 4px 0}
+.sec-title::before{content:'';display:inline-block;width:3px;height:10px;border-radius:2px;background:var(--acc2);margin-right:7px;vertical-align:-1px}
+.day-row{display:flex;align-items:center;gap:11px;padding:11px 10px;border-radius:11px}
+.day-row:active{background:var(--soft)}
+.day-main{flex:1;min-width:0}
+.day-name{font-size:14.5px}
+.day-note{font-size:12px;color:var(--faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.del{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  color:var(--faint);flex:0 0 auto;font-size:17px;line-height:1}
+.del:active{background:rgba(192,57,43,.12);color:var(--danger)}
+.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:16px 10px 6px;font-size:12.5px;color:var(--dim)}
+
+.empty{text-align:center;padding:34px 20px;color:var(--faint);font-size:13.5px;line-height:1.7}
+.searchrow{margin-top:14px;position:relative}
+.searchrow input{width:100%;padding:12px 14px 12px 38px;border-radius:13px;border:1px solid var(--line);
+  background:var(--card);color:var(--text);font-size:14.5px;outline:0}
+.searchrow input:focus{border-color:var(--faint)}
+.searchrow svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--faint)}
+
+nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav-in{max-width:560px;margin:0 auto;height:64px;display:flex;align-items:center;position:relative}
+.nav-btn{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  color:var(--faint);font-size:11px;transition:.15s}
+.nav-btn.on{color:var(--acc-text)}
+.nav-btn svg{width:21px;height:21px}
+.nav-add{flex:0 0 auto;width:78px;display:flex;align-items:center;justify-content:center}
+.add-btn{width:54px;height:54px;border-radius:18px;background:var(--acc);color:#fff;
+  display:flex;align-items:center;justify-content:center;margin-top:-18px;
+  box-shadow:0 6px 18px rgba(60,108,228,.32);transition:.15s}
+.add-btn:active{transform:scale(.94)}
+.add-btn svg{width:26px;height:26px}
+
+.mask{position:fixed;inset:0;background:rgba(12,14,17,.45);opacity:0;pointer-events:none;
+  transition:opacity .22s;z-index:50}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);color:var(--text);
+  border-radius:22px 22px 0 0;transform:translateY(102%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+  padding-bottom:calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto}
+.sheet.on{transform:translateY(0)}
+.sheet-in{max-width:560px;margin:0 auto;padding:0 18px}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--track);margin:10px auto 0}
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px}
+.sheet-hd h2{margin:0;font-size:16px;font-weight:500}
+.sheet-hd .acts{display:flex;gap:2px;align-items:center}
+.sheet-hd button{font-size:13.5px;color:var(--dim);padding:6px 10px;border-radius:9px}
+.sheet-hd button:active{background:var(--soft)}
+.sheet-hd button.rm{color:var(--danger)}
+
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}
+.cat{padding:11px 2px 9px;border-radius:12px;background:var(--soft);border:1.5px solid transparent;
+  display:flex;flex-direction:column;align-items:center;gap:4px;transition:.14s}
+.cat span.ic{font-size:19px;line-height:1}
+.cat span.nm{font-size:11.5px;color:var(--dim);white-space:nowrap;transform:scale(.94)}
+.cat.on{border-color:var(--acc);background:var(--card)}
+.cat.on span.nm{color:var(--text);font-weight:500}
+
+.amount-row{display:flex;align-items:center;gap:6px;margin-top:20px;padding-bottom:10px;border-bottom:2px solid var(--track)}
+.amount-row .cny-lg{font-size:26px;color:var(--dim)}
+#amountInput{flex:1;border:0;outline:0;font-size:32px;font-weight:500;letter-spacing:-.5px;width:100%;
+  background:transparent;padding:0;color:var(--text)}
+#amountInput::placeholder{color:var(--faint);opacity:.6}
+.quick{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+.quick button{padding:7px 14px;border-radius:10px;background:var(--soft);font-size:13.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.quick button:active{background:var(--track);color:var(--text)}
+.fld{width:100%;margin-top:14px;padding:13px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--soft);color:var(--text);font-size:14.5px;outline:0}
+.fld:focus{border-color:var(--faint);background:var(--card)}
+.fld::placeholder{color:var(--faint)}
+.primary{width:100%;margin-top:20px;padding:15px;border-radius:14px;background:var(--acc);color:#fff;
+  font-size:15.5px;font-weight:500;transition:.15s}
+.primary:active{opacity:.85}
+.primary:disabled{opacity:.35}
+.secondary{width:100%;margin-top:12px;padding:13px;border-radius:13px;background:var(--soft);
+  color:var(--text);font-size:14.5px;transition:.15s}
+.secondary:active{background:var(--track)}
+.chip.clr{display:inline-flex;align-items:center;gap:5px}
+.chip.clr .x{opacity:.7;font-size:12px}
+.fld-cap{font-size:12px;color:var(--faint);margin:16px 0 0}
+.chip.add{border:1px dashed var(--line);background:transparent;color:var(--dim)}
+.daterow{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding:2px 1px 4px;
+  scrollbar-width:none;scroll-behavior:smooth}
+.daterow::-webkit-scrollbar{display:none}
+.dcell{flex:0 0 auto;min-width:58px;padding:7px 10px 6px;border-radius:12px;background:var(--soft);
+  border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
+.dcell .dl{font-size:13px;color:var(--text);line-height:1.2;white-space:nowrap}
+.dcell .dw{font-size:11px;color:var(--faint);line-height:1}
+.dcell.on{border-color:var(--acc);background:var(--card)}
+.dcell.on .dl{font-weight:500}
+
+.seg{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:12px;margin-top:10px}
+.seg button{flex:1;padding:9px 0;border-radius:9px;font-size:13.5px;color:var(--dim);transition:.15s}
+.seg button.on{background:var(--card);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.set-list{margin-top:8px}
+.set-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 2px;
+  border-bottom:1px solid var(--line);width:100%;text-align:left}
+.set-item:last-child{border-bottom:0}
+.set-item b{font-weight:400;font-size:14.5px;display:block}
+.set-item small{font-size:12px;color:var(--faint);display:block;margin-top:2px}
+.set-item .go{color:var(--faint);font-size:13px;flex:0 0 auto}
+.set-item.danger b{color:var(--danger)}
+.grp{margin-top:24px;font-size:13px;color:var(--dim)}
+.note{font-size:12px;color:var(--faint);line-height:1.7;padding:14px 2px 4px}
+.toast{position:fixed;left:50%;bottom:104px;transform:translate(-50%,14px);z-index:90;
+  background:rgba(22,24,29,.93);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:11px;
+  opacity:0;pointer-events:none;transition:.22s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.cat.add{border:1.5px dashed var(--line);background:transparent}
+.cat.add span.ic{color:var(--dim);font-size:17px}
+.cat.add span.nm{color:var(--dim)}
+
+.prow{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.pbtn{display:flex;align-items:center;gap:7px;padding:11px 15px;border-radius:12px;background:var(--soft);
+  font-size:13.5px;color:var(--dim);border:1px dashed var(--line)}
+.pbtn:active{background:var(--track)}
+.pbtn svg{width:16px;height:16px}
+.pthumb{position:relative;width:60px;height:60px;border-radius:12px;overflow:hidden;background:var(--soft);flex:0 0 auto}
+.pthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pthumb button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;
+  background:rgba(12,14,17,.7);color:#fff;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
+
+.thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:0 0 auto;background:var(--soft);display:block}
+.thumb:active{opacity:.8}
+
+.emoji-sec{font-size:12px;color:var(--faint);margin:16px 0 7px}
+.emoji-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.emoji-grid button{aspect-ratio:1;border-radius:9px;font-size:18px;line-height:1;
+  display:flex;align-items:center;justify-content:center;background:var(--soft);border:1.5px solid transparent}
+.emoji-grid button.on{border-color:var(--ink);background:var(--card)}
+.palette{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-top:8px}
+.palette button{aspect-ratio:1;border-radius:50%;border:2px solid transparent}
+.palette button.on{box-shadow:0 0 0 2.5px var(--card),0 0 0 4.5px var(--ink)}
+
+.cat-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;width:100%;text-align:left}
+.cat-item:active{background:var(--soft)}
+.cat-item .cic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-size:19px;flex:0 0 auto}
+.cat-item .cinfo{flex:1;min-width:0}
+.cat-item .cname{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-item .cmeta{font-size:12px;color:var(--faint);margin-top:2px}
+.cat-item .go{color:var(--faint);font-size:13px;flex:0 0 auto}
+
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;border-bottom:1px solid var(--line)}
+.sw b{font-weight:400;font-size:14.5px;display:block}
+.sw small{font-size:12px;color:var(--faint);display:block;margin-top:2px}
+.tgl{width:46px;height:28px;border-radius:14px;background:var(--track);position:relative;flex:0 0 auto;transition:.18s}
+.tgl i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);
+  transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tgl.on{background:#1D9E75}
+.tgl.on i{left:21px}
+
+.lb{position:fixed;inset:0;z-index:80;background:rgba(8,9,11,.94);display:none;
+  align-items:center;justify-content:center;padding:20px}
+.lb.on{display:flex}
+.lb img{max-width:100%;max-height:86vh;border-radius:12px;display:block}
+.lb button{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;
+  border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:19px;line-height:1;
+  display:flex;align-items:center;justify-content:center;padding:0}
+/* 明细页：顶部合计 */
+.lt{padding:16px 18px 15px}
+.lt-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lt-k{font-size:12.5px;color:var(--dim)}
+.lt-v{font-size:29px;font-weight:500;letter-spacing:-.6px;margin-top:3px;font-variant-numeric:tabular-nums}
+.lt-s{font-size:12px;color:var(--faint);margin-top:4px}
+.lt-reset{flex:0 0 auto;padding:9px 15px;border-radius:11px;background:var(--soft);
+  font-size:13px;color:var(--dim);transition:.15s}
+.lt-reset:active{background:var(--track);color:var(--text)}
+
+/* 明细页：两行筛选 */
+.frow{display:flex;align-items:flex-start;gap:9px;margin-top:10px}
+.flab{font-size:12px;color:var(--faint);flex:0 0 auto;padding:7px 0;width:30px;text-align:right}
+.frow .chips{flex:1;margin-top:0}
+
+/* 明细页：分类筛选 */
+.chips.fw{flex-wrap:wrap;overflow:visible;row-gap:7px}
+.chip.ct{display:inline-flex;align-items:center;gap:5px}
+.chip.ct .d{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.chip.ct.on .d{box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
+
+/* 圆环图分段可点 */
+#donut [data-cat]{cursor:pointer}
+
+/* 可拖拽的分类明细弹窗 */
+.sheet.drag{height:86vh;max-height:86vh;overflow:hidden;display:flex;flex-direction:column;
+  transform:translateY(110%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
+.sheet.drag .grab{width:100%;height:auto;background:none;margin:0;padding:12px 0 8px;
+  cursor:grab;touch-action:none;flex:0 0 auto}
+.sheet.drag .grab i{display:block;width:36px;height:4px;border-radius:2px;background:var(--track);margin:0 auto}
+.cd-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.cd-head{display:flex;align-items:center;gap:12px;padding:4px 0 14px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.cd-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:23px;line-height:1;flex:0 0 auto}
+.cd-name{font-size:17px;font-weight:500}
+.cd-meta{font-size:12.5px;color:var(--faint);margin-top:3px}
+.cd-right{margin-left:auto;text-align:right;flex:0 0 auto}
+.cd-right b{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums;display:block;letter-spacing:-.3px}
+.cd-right span{font-size:12px;color:var(--faint)}
+.cd-hint{text-align:center;font-size:11.5px;color:var(--faint);padding:7px 0 3px;flex:0 0 auto}
+.cd-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:26px}
+.cd-row{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.cd-row:last-child{border-bottom:0}
+.cd-row img{width:50px;height:50px;border-radius:12px;object-fit:cover;flex:0 0 auto;background:var(--soft);display:block}
+.cd-row .ph{width:50px;height:50px;border-radius:12px;flex:0 0 auto;background:var(--soft);
+  display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:17px}
+.cd-main{flex:1;min-width:0}
+.cd-t{font-size:14.5px}
+.cd-s{font-size:12px;color:var(--faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-amt2{font-size:14.5px;font-weight:500;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <div>
+      <div class="hd-label" id="hdLabel">本月伙食费</div>
+      <div class="hd-total"><span class="cny">¥</span><span id="hdTotal">0</span></div>
+      <div class="hd-meta" id="hdMeta"></div>
+    </div>
+    <button class="icon-btn" id="btnSettings" aria-label="设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M4 7h9M18.5 7H20M4 17h1.5M11 17h9"/>
+        <circle cx="15.5" cy="7" r="2.3"/><circle cx="8" cy="17" r="2.3"/>
+      </svg>
+    </button>
+  </div>
+  <div class="wrap">
+    <div class="chips" id="chips">
+      <button class="chip" data-r="today">日</button>
+      <button class="chip" data-r="week">周</button>
+      <button class="chip on" data-r="month">月</button>
+      <button class="chip" data-r="year">年</button>
+      <button class="chip" data-r="all">全部</button>
+    </div>
+    <div class="pager" id="pager">
+      <button class="pg" id="pgPrev" aria-label="上一期">&#8249;</button>
+      <button class="pg-label" id="pgLabel">—</button>
+      <button class="pg" id="pgNext" aria-label="下一期">&#8250;</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="view-structure">
+    <div id="budgetSlot"></div>
+
+    <div class="card">
+      <div class="donut-wrap">
+        <svg id="donut" viewBox="0 0 200 200" aria-hidden="true"></svg>
+        <div class="donut-center">
+          <div class="dc-label" id="dcLabel">合计</div>
+          <div class="dc-amount" id="dcAmount">¥0</div>
+          <div class="dc-sub" id="dcSub">0 笔</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-title">花在哪儿了</div>
+    <div class="card tight legend" id="catList"></div>
+
+    <div class="sec-title" id="trendTitle">每天花多少</div>
+    <div class="card tight" id="trendList"></div>
+  </section>
+
+  <section id="view-list" class="hidden">
+    <div class="card pad0 lt">
+      <div class="lt-row">
+        <div style="min-width:0">
+          <div class="lt-k" id="ltK">全部记录</div>
+          <div class="lt-v" id="ltV">¥0</div>
+          <div class="lt-s" id="ltS"></div>
+        </div>
+        <button class="lt-reset hidden" id="ltReset">重置</button>
+      </div>
+    </div>
+    <div class="frow"><span class="flab">餐次</span><div class="chips" id="filterMeals"></div></div>
+    <div class="frow"><span class="flab">分类</span><div class="chips fw" id="listCats"></div></div>
+    <div class="searchrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>
+      </svg>
+      <input id="searchInput" type="search" placeholder="搜分类或备注" autocomplete="off">
+    </div>
+    <div class="card tight" id="recordList"></div>
+  </section>
+</main>
+
+<nav>
+  <div class="nav-in">
+    <button class="nav-btn on" data-tab="structure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="8.2"/><path d="M12 3.8V12l6 3.4"/>
+      </svg>
+      <span>结构</span>
+    </button>
+    <div class="nav-add">
+      <button class="add-btn" id="btnAdd" aria-label="记一笔">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+    </div>
+    <button class="nav-btn" data-tab="list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M4 6.5h16M4 12h16M4 17.5h10"/>
+      </svg>
+      <span>明细</span>
+    </button>
+  </div>
+</nav>
+
+<div class="mask" id="mask"></div>
+
+<div class="sheet" id="sheetAdd">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd">
+      <h2 id="addTitle">记一笔</h2>
+      <div class="acts">
+        <button class="rm hidden" id="btnDeleteInSheet">删除</button>
+        <button data-close>取消</button>
+      </div>
+    </div>
+    <div class="cats" id="catPicker"></div>
+    <div class="amount-row">
+      <span class="cny-lg">¥</span>
+      <input id="amountInput" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off">
+    </div>
+    <div class="quick" id="quickAmts"></div>
+    <input id="noteInput" class="fld" type="text" placeholder="备注（选填）" autocomplete="off" maxlength="40">
+    <div class="prow" id="photoRow"></div>
+    <div class="fld-cap">哪一餐</div>
+    <div class="chips" id="mealChips" style="margin-top:8px"></div>
+    <div class="fld-cap">哪一天（往左滑可以选更早）</div>
+    <div class="daterow" id="dateRow"></div>
+    <div class="note hidden" id="oldDateNote" style="padding:10px 2px 0"></div>
+    <button class="primary" id="btnSave" disabled>保存</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheetSet">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>设置</h2><button data-close>关闭</button></div>
+
+    <div class="grp">分类</div>
+    <div class="set-list">
+      <button class="set-item" id="btnCats">
+        <span><b>分类管理</b><small>增删分类，改图标、名称、颜色</small></span><span class="go">管理</span>
+      </button>
+    </div>
+
+    <div class="grp">月度预算</div>
+    <input id="budgetInput" class="fld" type="text" inputmode="decimal" placeholder="比如 1200，留空表示不设预算">
+    <div class="note" style="padding-top:8px">设了之后首页会算出「今天还能花多少」——用剩余预算除以剩余天数，随花随变。</div>
+
+    <div class="grp">外观</div>
+    <div class="seg" id="themeSeg">
+      <button data-th="auto">跟随系统</button>
+      <button data-th="light">浅色</button>
+      <button data-th="dark">深色</button>
+    </div>
+
+    <div class="grp">存储</div>
+    <div class="set-list">
+      <div class="set-item" style="cursor:default">
+        <span><b>本机占用</b><small id="storageInfo">计算中…</small></span>
+      </div>
+    </div>
+    <div class="note" style="padding-top:8px">图片是占空间的大头（已自动压缩，每张约 50–90 KB）。删掉带图的记录会同时删掉那张图，空间立刻回收。应用本身的体积是固定的，不会随使用变大。</div>
+
+    <div class="grp">数据</div>
+    <div class="set-list">
+      <button class="set-item" id="btnExport">
+        <span><b>导出备份（JSON）</b><small>完整备份，可再导回来</small></span><span class="go">导出</span>
+      </button>
+      <button class="set-item" id="btnExportCsv">
+        <span><b>导出表格（CSV）</b><small>用 Excel 或 WPS 打开继续分析</small></span><span class="go">导出</span>
+      </button>
+      <button class="set-item" id="btnImport">
+        <span><b>导入恢复</b><small>从 JSON 备份合并记录（按 id 去重）</small></span><span class="go">导入</span>
+      </button>
+      <button class="set-item danger" id="btnClear">
+        <span><b>清空数据</b><small>删除本机全部记录，不可恢复</small></span><span class="go">清空</span>
+      </button>
+    </div>
+    <div class="note" id="statNote"></div>
+    <div class="note">数据只存在这台手机的浏览器里，不会上传到任何服务器。换手机或清理浏览器数据前，记得先导出备份。</div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetCats">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>分类管理</h2><button data-closeone>返回</button></div>
+
+    <div class="grp">伙食分类</div>
+    <div class="set-list" id="catManageList"></div>
+    <button class="secondary" id="btnNewCat">＋ 新建分类</button>
+    <div class="note">删除分类不会连带删掉记录 —— 用到它的记录会自动转到你保留的另一个分类。</div>
+
+    <div class="grp">餐次</div>
+    <div class="set-list" id="mealManageList"></div>
+    <button class="secondary" id="btnNewMeal">＋ 新建餐次</button>
+    <div class="note">餐次是「早餐 / 午餐 / 晚餐 / 夜宵」这类维度，和上面的伙食分类相互独立。删掉餐次只会把记录上的这一项清空，不影响记录本身。</div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetCatEdit">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd">
+      <h2 id="catEditTitle">新建分类</h2>
+      <div class="acts">
+        <button class="rm hidden" id="btnCatDel">删除</button>
+        <button data-closeone>取消</button>
+      </div>
+    </div>
+    <input id="catNameInput" class="fld" type="text" placeholder="分类名称，比如「早餐」「火锅」" maxlength="10" autocomplete="off">
+    <div id="catVisual">
+      <div class="emoji-sec">图标 —— 点下面的推荐，或直接在输入框里粘贴任意 emoji</div>
+      <input id="catIconInput" class="fld" type="text" maxlength="4" placeholder="&#127836;"
+        style="margin-top:0;text-align:center;font-size:26px;padding:8px">
+      <div id="emojiWrap"></div>
+      <div class="emoji-sec">颜色</div>
+      <div class="palette" id="paletteWrap"></div>
+      <div class="sw" style="margin-top:18px;border-bottom:0">
+        <span><b>高油高糖</b></span>
+        <button class="tgl" id="catHeavyTgl" aria-label="高油高糖"><i></i></button>
+      </div>
+    </div>
+    <button class="primary" id="btnCatSave">保存</button>
+  </div>
+</div>
+
+<div class="sheet drag" id="sheetCatDetail">
+  <div class="grab" id="cdGrab"><i></i></div>
+  <div class="sheet-in cd-body">
+    <div class="cd-head">
+      <span class="cd-icon" id="cdIcon"></span>
+      <div>
+        <div class="cd-name" id="cdName"></div>
+        <div class="cd-meta" id="cdMeta"></div>
+      </div>
+      <div class="cd-right"><b id="cdAmt">¥0</b><span id="cdPct"></span></div>
+    </div>
+    <div class="cd-hint" id="cdHint">上拉展开 · 下拉收起</div>
+    <div class="cd-list" id="cdList"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetFull">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>全部明细</h2><button data-closeone>关闭</button></div>
+    <div class="lt-s" id="fullCount" style="margin:-4px 0 0"></div>
+    <div class="card tight" id="fullList" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetPick">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2 id="pickTitle">选择日期</h2><button data-close>关闭</button></div>
+    <div class="wheel-wrap">
+      <div class="wheel-band"></div>
+      <div class="wheel" id="wheelBox">
+        <div class="wheel-pad"></div>
+        <div id="wheelItems"></div>
+        <div class="wheel-pad"></div>
+      </div>
+    </div>
+    <div class="lt-s" style="text-align:center;margin-top:2px">上下滑动或点选，再按下面的按钮跳过去</div>
+    <button class="primary" id="btnPickOk" style="margin-top:12px">跳到此处</button>
+  </div>
+</div>
+
+<div class="lb" id="lightbox"><button id="lbClose">&times;</button><img id="lbImg" alt=""></div>
+
+<input type="file" id="fileImport" accept=".json,application/json" class="hidden">
+<input type="file" id="filePhoto" accept="image/*" class="hidden">
+<div class="toast" id="toast"></div>
+
+<script>
+const SEED_CATS = [
+  {id:'main',    name:'正餐食堂', color:'#378ADD', icon:'\u{1F35A}', heavy:false},
+  {id:'fast',    name:'快餐',     color:'#EF9F27', icon:'\u{1F354}', heavy:false},
+  {id:'fried',   name:'炸鸡',     color:'#D85A30', icon:'\u{1F357}', heavy:true},
+  {id:'snack',   name:'零食饮料', color:'#D4537E', icon:'\u{1F964}', heavy:true},
+  {id:'drink',   name:'咖啡奶茶', color:'#7F77DD', icon:'\u2615',     heavy:true},
+  {id:'takeout', name:'外卖',     color:'#1D9E75', icon:'\u{1F6F5}', heavy:false},
+  {id:'fruit',   name:'水果',     color:'#639922', icon:'\u{1F34E}', heavy:false},
+  {id:'night',   name:'夜宵',     color:'#534AB7', icon:'\u{1F362}', heavy:true},
+  {id:'gather',  name:'聚餐',     color:'#993556', icon:'\u{1F37D}', heavy:false},
+  {id:'other',   name:'其他',     color:'#888780', icon:'\u{1F4E6}', heavy:false}
+];
+const PALETTE = ['#378ADD','#EF9F27','#D85A30','#D4537E','#7F77DD','#1D9E75',
+                 '#639922','#534AB7','#993556','#888780','#E24B4A','#0F6E56'];
+const EMOJI_SETS = [
+  {name:'主食', list:['\u{1F35A}','\u{1F35C}','\u{1F35E}','\u{1F35D}','\u{1F958}','\u{1F372}','\u{1F95F}','\u{1F35B}','\u{1F371}','\u{1F957}','\u{1F32F}','\u{1F96A}']},
+  {name:'肉食', list:['\u{1F357}','\u{1F356}','\u{1F354}','\u{1F32D}','\u{1F969}','\u{1F364}','\u{1F41F}','\u{1F953}','\u{1F355}','\u{1F32E}']},
+  {name:'零食', list:['\u{1F35F}','\u{1F37F}','\u{1F968}','\u{1F369}','\u{1F36A}','\u{1F36B}','\u{1F9C1}','\u{1F370}','\u{1F950}','\u{1F361}']},
+  {name:'饮品', list:['\u{1F964}','\u2615','\u{1F9CB}','\u{1F375}','\u{1F9C3}','\u{1F37A}','\u{1F377}','\u{1F95B}','\u{1F4A7}','\u{1F379}']},
+  {name:'水果', list:['\u{1F34E}','\u{1F34C}','\u{1F347}','\u{1F349}','\u{1F34A}','\u{1F353}','\u{1F95D}','\u{1F351}','\u{1F96D}','\u{1F34D}']},
+  {name:'其他', list:['\u{1F6F5}','\u{1F3E0}','\u{1F37D}','\u{1F4E6}','\u{1F381}','\u2B50','\u{1F525}','\u{1F4B0}','\u{1F550}','\u{1F680}']}
+];
+const SEED_MEALS = [
+  {id:'m_breakfast', name:'早餐'},
+  {id:'m_lunch',     name:'午餐'},
+  {id:'m_dinner',    name:'晚餐'},
+  {id:'m_night',     name:'夜宵'}
+];
+const UNKNOWN_CAT = {id:'__gone', name:'已删除的分类', color:'#888780', icon:'\u2753', heavy:false};
+let CATS = [];
+let CAT_MAP = {};
+let MEALS = [];
+let MEAL_MAP = {};
+const catOf = id => CAT_MAP[id] || UNKNOWN_CAT;
+const mealOf = id => MEAL_MAP[id] || null;
+const QUICK = [5, 10, 15, 20, 30, 50];
+
+const DB = (() => {
+  let p = null;
+  function open(){
+    if (p) return p;
+    p = new Promise((res, rej) => {
+      const r = indexedDB.open('mealcost', 4);
+      r.onupgradeneeded = () => {
+        const db = r.result;
+        if (!db.objectStoreNames.contains('records')){
+          const s = db.createObjectStore('records', {keyPath:'id'});
+          s.createIndex('ts', 'ts');
+        }
+        if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', {keyPath:'k'});
+        if (!db.objectStoreNames.contains('cats')) db.createObjectStore('cats', {keyPath:'id'});
+        if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos', {keyPath:'id'});
+        if (!db.objectStoreNames.contains('meals')) db.createObjectStore('meals', {keyPath:'id'});
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return p;
+  }
+  const tx = async (store, mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const st = db.transaction(store, mode).objectStore(store);
+      const req = fn(st);
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+  };
+  return {
+    all:    () => tx('records', 'readonly',  s => s.getAll()),
+    put:    r  => tx('records', 'readwrite', s => s.put(r)),
+    del:    id => tx('records', 'readwrite', s => s.delete(id)),
+    clear:  () => tx('records', 'readwrite', s => s.clear()),
+    getMeta:k  => tx('meta', 'readonly',  s => s.get(k)),
+    setMeta:(k, v) => tx('meta', 'readwrite', s => s.put({k, v})),
+
+    allCats:  () => tx('cats', 'readonly',  s => s.getAll()),
+    putCat:   c  => tx('cats', 'readwrite', s => s.put(c)),
+    delCat:   id => tx('cats', 'readwrite', s => s.delete(id)),
+
+    allPhotos:() => tx('photos', 'readonly', s => s.getAll()),
+
+    allMeals: () => tx('meals', 'readonly',  s => s.getAll()),
+    putMeal:  m  => tx('meals', 'readwrite', s => s.put(m)),
+    delMeal:  id => tx('meals', 'readwrite', s => s.delete(id)),
+
+    getPhoto: id => tx('photos', 'readonly',  s => s.get(id)),
+    putPhoto: p  => tx('photos', 'readwrite', s => s.put(p)),
+    delPhoto: id => tx('photos', 'readwrite', s => s.delete(id))
+  };
+})();
+
+const $ = id => document.getElementById(id);
+const state = {
+  records:[], range:'month', anchor:0, tab:'structure', cat:'', amount:'', note:'',
+  selDate:'', editing:null, budget:0, theme:'auto', query:'', listCats:[], filterMeals:[], cdCat:null, cdOpen:false,
+  listLimit:30,
+  photoId:null, photoBlob:null, photoPreview:null, meal:null,
+  catEditing:null, catIcon:'', catColor:PALETTE[0], catHeavy:false, catFromPicker:false, catMode:'cat'
+};
+
+const toCents = v => {
+  const n = parseFloat(String(v).replace(/[^\d.]/g, ''));
+  if (!isFinite(n) || n <= 0) return 0;
+  return Math.round(n * 100);
+};
+const fmt = c => { const n = c / 100; return Number.isInteger(n) ? String(n) : n.toFixed(2); };
+const pad = n => String(n).padStart(2, '0');
+const dayKey = ts => { const d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+const WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
+const sum = arr => arr.reduce((a, r) => a + r.amt, 0);
+
+function periodOf(key, anchor){
+  const now = new Date();
+  const n = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (key === 'today'){
+    const s = new Date(n); s.setDate(s.getDate() + anchor);
+    return [s.getTime(), new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1).getTime()];
+  }
+  if (key === 'week'){
+    const s = new Date(n); s.setDate(s.getDate() - ((n.getDay() + 6) % 7) + anchor * 7);
+    const e = new Date(s); e.setDate(e.getDate() + 7);
+    return [s.getTime(), e.getTime()];
+  }
+  if (key === 'month'){
+    return [new Date(now.getFullYear(), now.getMonth() + anchor, 1).getTime(),
+            new Date(now.getFullYear(), now.getMonth() + anchor + 1, 1).getTime()];
+  }
+  if (key === 'year'){
+    return [new Date(now.getFullYear() + anchor, 0, 1).getTime(),
+            new Date(now.getFullYear() + anchor + 1, 0, 1).getTime()];
+  }
+  return [0, Infinity];
+}
+function inRange(r){
+  const p = periodOf(state.range, state.anchor);
+  return r.ts >= p[0] && r.ts < p[1];
+}
+function daysInRange(){
+  if (state.range === 'all'){
+    if (!state.records.length) return 1;
+    const d0 = new Date(Math.min(...state.records.map(r => r.ts)));
+    d0.setHours(0,0,0,0);
+    return Math.max(1, Math.round((Date.now() - d0.getTime()) / 864e5) + 1);
+  }
+  const p = periodOf(state.range, state.anchor);
+  return Math.max(1, Math.ceil((Math.min(p[1], Date.now() + 1) - p[0]) / 864e5));
+}
+function spanDays(list){
+  if (!list.length) return 0;
+  const a = new Date(Math.min(...list.map(r => r.ts))); a.setHours(0, 0, 0, 0);
+  const b = new Date(Math.max(...list.map(r => r.ts))); b.setHours(0, 0, 0, 0);
+  return Math.round((b - a) / 864e5) + 1;
+}
+
+function md(d, withWeek){
+  const t = d instanceof Date ? d : new Date(d);
+  const y = t.getFullYear() !== new Date().getFullYear() ? t.getFullYear() + '年' : '';
+  return y + (t.getMonth()+1) + '月' + t.getDate() + '日' + (withWeek ? ' ' + WEEK[t.getDay()] : '');
+}
+function rangeDates(key, anchor){
+  anchor = anchor || 0;
+  if (key === 'all'){
+    if (!state.records.length) return '全部记录';
+    const ts = state.records.map(r => r.ts);
+    return md(new Date(Math.min(...ts))) + ' – ' + md(new Date(Math.max(...ts)));
+  }
+  const p = periodOf(key, anchor);
+  if (key === 'year') return new Date(p[0]).getFullYear() + '年';
+  const last = new Date(p[1]); last.setDate(last.getDate() - 1);
+  const a = md(new Date(p[0])), b = md(last);
+  return a === b ? a : a + ' – ' + b;
+}
+
+/* 趋势卡的桶：粒度跟随当前视图（天/周/月/年），一次取最近 n 个 */
+function bucketKey(ts, gran){
+  const d = new Date(ts);
+  if (gran === 'week')  return 'w' + dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)).getTime());
+  if (gran === 'month') return d.getFullYear() + '-' + pad(d.getMonth() + 1);
+  if (gran === 'year')  return 'y' + d.getFullYear();
+  return dayKey(d.getTime());
+}
+function bucketList(gran, n){
+  const now = new Date();
+  const out = [];
+  if (gran === 'day'){
+    for (let i = 0; i < n; i++){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      out.push({k: dayKey(d.getTime()),
+        name: i === 0 ? '今天' : i === 1 ? '昨天' : i === 2 ? '前天' : md(d),
+        sub: WEEK[d.getDay()]});
+    }
+  } else if (gran === 'week'){
+    for (let i = 0; i < n; i++){
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7) - i * 7);
+      const e = new Date(s); e.setDate(e.getDate() + 6);
+      out.push({k: 'w' + dayKey(s.getTime()),
+        name: i === 0 ? '本周' : i === 1 ? '上周' : md(s),
+        sub: md(s) + ' – ' + md(e)});
+    }
+  } else if (gran === 'month'){
+    for (let i = 0; i < n; i++){
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push({k: d.getFullYear() + '-' + pad(d.getMonth() + 1),
+        name: (d.getFullYear() !== now.getFullYear() ? d.getFullYear() + '年' : '') + (d.getMonth() + 1) + '月'});
+    }
+  } else if (gran === 'year'){
+    for (let i = 0; i < n; i++){
+      const y = now.getFullYear() - i;
+      out.push({k: 'y' + y, name: y + '年'});
+    }
+  }
+  return out;
+}
+const TREND_TITLE = {day:'最近三天', week:'最近三周', month:'最近三月', year:'最近三年'};
+
+/* —— 日期滚轮选择器 —— */
+const PICK_H = 46;
+let pickItems = [], pickPending = 0, pickTimer = null;
+
+function buildPickItems(range){
+  const NOW = new Date();
+  const first = state.records.length ? new Date(Math.min(...state.records.map(r => r.ts))) : null;
+  const items = [];
+  if (range === 'today'){
+    const t0 = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+    const n = 30;
+    for (let i = 0; i < n; i++){
+      const d = new Date(t0); d.setDate(d.getDate() - i);
+      items.push({anchor:-i, label:(i === 0 ? '今天 · ' : i === 1 ? '昨天 · ' : i === 2 ? '前天 · ' : '') + md(d, true)});
+    }
+  } else if (range === 'week'){
+    const monday = d => {
+      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() - (x.getDay() + 6) % 7);
+      return x;
+    };
+    const n = 5;
+    for (let i = 0; i < n; i++)
+      items.push({anchor:-i, label:(i === 0 ? '本周 · ' : i === 1 ? '上周 · ' : i === 2 ? '上上周 · ' : '') + rangeDates('week', -i)});
+  } else if (range === 'month'){
+    const n = 12;
+    for (let i = 0; i < n; i++){
+      const d = new Date(NOW.getFullYear(), NOW.getMonth() - i, 1);
+      items.push({anchor:-i, label:(i === 0 ? '本月 · ' : '') + d.getFullYear() + '年' + (d.getMonth() + 1) + '月'});
+    }
+  } else if (range === 'year'){
+    let n = first ? NOW.getFullYear() - first.getFullYear() + 1 : 3;
+    n = Math.max(3, Math.min(50, n));
+    for (let i = 0; i < n; i++)
+      items.push({anchor:-i, label:(i === 0 ? '本年 · ' : '') + (NOW.getFullYear() - i) + '年'});
+  }
+  return items;
+}
+
+function setPending(idx){
+  pickPending = idx;
+  document.querySelectorAll('#wheelItems .witem').forEach((el, i) => el.classList.toggle('on', i === idx));
+}
+
+function openDatePicker(){
+  if (state.range === 'all') return;
+  $('pickTitle').textContent = {today:'选择日期', week:'选择周', month:'选择月份', year:'选择年份'}[state.range];
+  pickItems = buildPickItems(state.range);
+  $('wheelItems').innerHTML = pickItems.map((it, i) =>
+    '<div class="witem" data-wi="' + i + '">' + esc(it.label) + '</div>').join('');
+  openSheet($('sheetPick'));
+  const idx = Math.max(0, Math.min(pickItems.length - 1, -state.anchor));
+  setTimeout(() => {
+    $('wheelBox').scrollTop = idx * PICK_H;
+    setPending(idx);
+  }, 80);
+}
+
+let toastTimer;
+function toast(msg){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 1900);
+}
+
+function arcs(segs){
+  const size = 200, th = 27, c = 100, r = (size - th) / 2 - 2, circ = 2 * Math.PI * r;
+  const gap = segs.length > 1 ? 3.5 : 0;
+  let off = 0, out = '';
+  for (const s of segs){
+    const len = Math.max(s.pct * circ - gap, 0.5);
+    out += '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="' + th +
+      '" stroke-dasharray="' + len.toFixed(2) + ' ' + (circ-len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) +
+      '" transform="rotate(-90 100 100)" data-cat="' + s.id + '"><title>' + esc(catOf(s.id).name) + '</title></circle>';
+    off += s.pct * circ;
+  }
+  return out;
+}
+
+function renderBudget(){
+  const slot = $('budgetSlot');
+  const inMonthView = state.range === 'today' || state.range === 'week' ||
+    (state.range === 'month' && state.anchor === 0);
+  if (!inMonthView){ slot.innerHTML = ''; return; }
+  if (!state.budget){
+    slot.innerHTML =
+      '<div class="card pad0"><button class="bud-cta" id="ctaBudget">' +
+        '<span><span class="t">设置月度预算</span><span class="s">算出每天还能花多少，超了立刻看见</span></span>' +
+        '<span class="go">去设置</span></button></div>';
+    $('ctaBudget').addEventListener('click', () => openSettings());
+    return;
+  }
+  const now = new Date();
+  const ms = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const me = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+  const spent = sum(state.records.filter(r => r.ts >= ms && r.ts < me));
+  const left = state.budget - spent;
+  const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = dim - now.getDate() + 1;
+  const pct = Math.min(spent / state.budget, 1);
+  const over = left < 0;
+  const color = over ? 'var(--danger)' : (pct > .85 ? '#EF9F27' : '#1D9E75');
+  const perDay = Math.max(0, Math.floor(left / daysLeft));
+
+  slot.innerHTML =
+    '<div class="card pad0">' +
+      '<div class="bud-top"><span class="bud-k">本月预算</span>' +
+        '<span class="bud-v">¥' + fmt(state.budget) + '</span></div>' +
+      '<div class="bud-big' + (over ? ' warn' : '') + '">' + (over ? '已超支 ¥' + fmt(-left) : '¥' + fmt(perDay)) +
+        '<span class="u">' + (over ? '' : ' / 今天还能花') + '</span></div>' +
+      '<div class="bud-sub">已花 ¥' + fmt(spent) + ' · 还剩 ' + daysLeft + ' 天' +
+        (over ? '' : ' · 预算余 ¥' + fmt(left)) + '</div>' +
+      '<div class="bud-bar"><i style="width:' + (pct * 100).toFixed(1) + '%;background:' + color + '"></i></div>' +
+    '</div>';
+}
+
+function renderPager(){
+  const pager = $('pager');
+  if (state.range === 'all'){
+    pager.classList.add('hidden');
+    return;
+  }
+  pager.classList.remove('hidden');
+  const REL_NAMES = {today:['今天','昨天','前天'], week:['本周','上周','上上周'], month:['本月'], year:['本年']}[state.range] || [];
+  const relIdx = -state.anchor;
+  $('pgLabel').textContent =
+    (relIdx >= 0 && relIdx < REL_NAMES.length ? REL_NAMES[relIdx] + ' · ' : '') +
+    rangeDates(state.range, state.anchor);
+  $('pgLabel').classList.toggle('back', state.anchor !== 0);
+  $('pgNext').disabled = state.anchor >= 0;
+}
+
+function render(){
+  const list = state.records.filter(inRange);
+  const total = sum(list);
+
+  $('hdLabel').innerHTML = '<span class="dt">' + md(new Date(), true) + '</span> · 伙食费';
+  $('hdTotal').textContent = fmt(total);
+  const days = daysInRange();
+  $('hdMeta').textContent = list.length
+    ? days + ' 天 · 日均 ¥' + fmt(Math.round(total / days)) + ' · ' + list.length + ' 笔'
+    : (state.range === 'all' ? '还没有记录' : '这个区间还没有记录');
+  renderPager();
+
+  renderBudget();
+
+  const byCat = {};
+  for (const r of list) byCat[r.cat] = (byCat[r.cat] || 0) + r.amt;
+  const segs = Object.entries(byCat)
+    .map(([id, amt]) => ({id, amt, pct: total ? amt / total : 0, color: catOf(id).color}))
+    .sort((a, b) => b.amt - a.amt);
+
+  $('donut').innerHTML = segs.length
+    ? arcs(segs)
+    : '<circle cx="100" cy="100" r="84.5" fill="none" stroke="var(--track)" stroke-width="27"/>';
+  $('dcLabel').textContent = '合计';
+  $('dcAmount').textContent = '¥' + fmt(total);
+  $('dcSub').textContent = list.length + ' 笔 · ' + segs.length + ' 类';
+
+  $('catList').innerHTML = segs.length ? segs.map(s => {
+    const c = catOf(s.id);
+    const n = list.filter(r => r.cat === s.id).length;
+    return '<div class="row" data-cat="' + s.id + '">' +
+      '<span class="dot" style="background:' + c.color + '"></span>' +
+      '<div class="row-main"><div class="row-top">' +
+        '<span class="row-name">' + c.name + (c.heavy ? '<span class="tag">高油糖</span>' : '') + '</span>' +
+        '<span class="row-amt">¥' + fmt(s.amt) + '</span>' +
+      '</div><div class="row-bottom">' +
+        '<span class="bar"><i style="width:' + Math.max(2, s.pct * 100).toFixed(1) + '%;background:' + c.color + '"></i></span>' +
+        '<span class="row-pct">' + (s.pct * 100).toFixed(0) + '% · ' + n + ' 笔</span>' +
+      '</div></div></div>';
+  }).join('') : '<div class="empty">还没有记录<br>点下面的按钮记第一笔</div>';
+
+  const gran = state.range === 'today' ? 'day'
+             : state.range === 'week'  ? 'week'
+             : state.range === 'month' ? 'month'
+             : state.range === 'year'  ? 'year'
+             : (spanDays(state.records) > 62 ? 'month' : 'day');
+  const by = {};
+  for (const r of state.records){
+    const k = bucketKey(r.ts, gran);
+    by[k] = (by[k] || 0) + r.amt;
+  }
+  const buckets = bucketList(gran, 3);
+  const maxV = Math.max(1, ...buckets.map(b => by[b.k] || 0));
+  $('trendTitle').textContent = TREND_TITLE[gran];
+  $('trendList').innerHTML = state.records.length ? buckets.map(b => {
+    const amt = by[b.k] || 0;
+    const sub = b.sub ? ' <span style="color:var(--faint);font-size:12px">' + b.sub + '</span>' : '';
+    return '<div class="row"><div class="row-main"><div class="row-top">' +
+      '<span class="row-name">' + b.name + sub + '</span>' +
+      '<span class="row-amt">¥' + fmt(amt) + '</span>' +
+      '</div><div class="row-bottom"><span class="bar"><i style="width:' +
+        Math.max(2, amt / maxV * 100).toFixed(1) + '%;background:' +
+        (amt ? 'var(--acc)' : 'var(--track)') + '"></i></span></div></div></div>';
+  }).join('') : '<div class="empty">还没有记录</div>';
+
+  renderListCats();
+  renderFilterMeals();
+  renderList();
+
+  const used = new Set(state.records.map(r => r.cat));
+  $('statNote').textContent = '本机共 ' + state.records.length + ' 条记录，用过的分类 ' + used.size +
+    ' 个，累计 ¥' + fmt(sum(state.records)) + '。';
+}
+
+function chipRow(el, items, selected, dataAttr, clearAttr, withDot){
+  const has = selected.length > 0;
+  el.innerHTML =
+    (has
+      ? '<button class="chip clr on" ' + clearAttr + '>清除<span class="x">&times;</span></button>'
+      : '<button class="chip on">全部</button>') +
+    items.map(c => '<button class="chip ct' + (selected.includes(c.id) ? ' on' : '') + '" ' + dataAttr + '="' + c.id + '">' +
+      (withDot ? '<span class="d" style="background:' + c.color + '"></span>' : '') +
+      esc(c.name) + '</button>').join('');
+}
+function renderListCats(){
+  state.listCats = state.listCats.filter(id => CAT_MAP[id]);   // 分类被删掉的就从筛选里移除
+  const used = new Set(state.records.map(r => r.cat));
+  const list = CATS.filter(c => used.has(c.id));
+  $('listCats').classList.toggle('hidden', !list.length);
+  if (!list.length){ $('listCats').innerHTML = ''; return; }
+  chipRow($('listCats'), list, state.listCats, 'data-lc', 'data-lc-clear', true);
+}
+function renderFilterMeals(){
+  state.filterMeals = state.filterMeals.filter(id => MEAL_MAP[id] || id === '__none__');
+  const noMeal = state.records.filter(r => !r.meal || !MEAL_MAP[r.meal]).length;
+  const items = MEALS.map(m => ({id: m.id, name: m.name}))
+    .concat(noMeal ? [{id:'__none__', name:'未标注'}] : []);
+  chipRow($('filterMeals'), items, state.filterMeals, 'data-fm', 'data-fm-clear', false);
+}
+
+function recSub(r){
+  const bits = [];
+  const mn = mealOf(r.meal);
+  if (mn) bits.push(mn.name);
+  if (r.note) bits.push(esc(r.note));
+  return bits.length ? bits.join(' · ') : '没写备注';
+}
+
+function listRowsHTML(rows){
+  let html = '', lastKey = '';
+  for (const r of rows){
+    const k = dayKey(r.ts);
+    if (k !== lastKey){
+      const d = new Date(k + 'T00:00:00');
+      const daySum = sum(rows.filter(x => dayKey(x.ts) === k));
+      html += '<div class="day-head"><span>' + md(d, true) +
+        '</span><span>合计 ¥' + fmt(daySum) + '</span></div>';
+      lastKey = k;
+    }
+    const c = catOf(r.cat);
+    const purl = r.photo ? PHOTO_URL[r.photo] : null;
+    html += '<div class="day-row" data-edit="' + r.id + '">' +
+      (purl
+        ? '<img class="thumb" src="' + purl + '" data-photo="' + r.photo + '" alt="">'
+        : '<span class="dot" style="background:' + c.color + '"></span>') +
+      '<div class="day-main">' +
+        '<div class="day-name">' + c.icon + ' ' + esc(c.name) + '</div>' +
+        '<div class="day-note">' + recSub(r) + '</div>' +
+      '</div>' +
+      '<span class="row-amt">¥' + fmt(r.amt) + '</span></div>';
+  }
+  return html;
+}
+
+function listFiltered(){
+  const q = state.query.trim().toLowerCase();
+  let all = [...state.records].sort((a, b) => b.ts - a.ts);
+  if (state.listCats.length) all = all.filter(r => state.listCats.includes(r.cat));
+  if (state.filterMeals.length) all = all.filter(r => state.filterMeals.includes(r.meal || '__none__'));
+  if (q) all = all.filter(r => {
+    const c = catOf(r.cat);
+    const mn = mealOf(r.meal);
+    return c.name.toLowerCase().includes(q) || (r.note || '').toLowerCase().includes(q) ||
+           (mn && mn.name.toLowerCase().includes(q));
+  });
+  return all;
+}
+
+function openFullList(){
+  const all = listFiltered();
+  $('fullCount').textContent = '共 ' + all.length + ' 条 · 合计 ¥' + fmt(sum(all)) +
+    (state.query.trim() || state.listCats.length || state.filterMeals.length ? ' · 已应用筛选' : '');
+  $('fullList').innerHTML = all.length ? listRowsHTML(all) : '<div class="empty">没有记录</div>';
+  openSheet($('sheetFull'));
+}
+
+function renderList(){
+  const all = listFiltered();
+  const dates = all.map(r => r.ts);
+  const parts = [];
+  if (state.filterMeals.length) parts.push(state.filterMeals.map(id => mealOf(id).name).join('+'));
+  if (state.listCats.length) parts.push(state.listCats.map(id => catOf(id).name).join('+'));
+  $('ltK').textContent =
+    (parts.length ? parts.join(' · ') : '全部记录') + (state.query.trim() ? ' · 搜索结果' : '');
+  $('ltReset').classList.toggle('hidden',
+    !(state.listCats.length || state.filterMeals.length || state.query));
+  $('ltV').textContent = '¥' + fmt(sum(all));
+  $('ltS').textContent = all.length
+    ? all.length + ' 笔 · ' + new Set(all.map(r => r.cat)).size + ' 个分类 · ' +
+      md(new Date(Math.min(...dates)), false) + ' – ' + md(new Date(Math.max(...dates)), false)
+    : '没有匹配的记录';
+
+  if (!all.length){
+    $('recordList').innerHTML = '<div class="empty">' +
+      (state.query.trim() || state.listCats.length || state.filterMeals.length
+        ? '这个筛选条件下没有记录' : '还没有任何记录，去记第一笔吧') + '</div>';
+    return;
+  }
+  const shown = all.slice(0, state.listLimit);
+  let html = listRowsHTML(shown);
+  if (all.length > shown.length){
+    html += '<button class="secondary" id="btnMoreList" style="margin:12px 10px;width:calc(100% - 20px)">' +
+      '查看全部明细（共 ' + all.length + ' 条）</button>';
+  }
+  $('recordList').innerHTML = html;
+}
+const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+/* ---------- 点圆环图看某一类吃了什么 ---------- */
+const cdEl = () => $('sheetCatDetail');
+const cdH = () => cdEl().getBoundingClientRect().height || 1;
+const cdHalf = () => cdH() * 0.52;
+function cdOffset(){
+  const m = /translateY\((-?[\d.]+)px\)/.exec(cdEl().style.transform || '');
+  return m ? parseFloat(m[1]) : 0;
+}
+function cdSet(px, anim){
+  const el = cdEl();
+  el.style.transition = anim ? 'transform .32s cubic-bezier(.32,.72,0,1)' : 'none';
+  el.style.transform = 'translateY(' + Math.max(0, Math.round(px)) + 'px)';
+}
+function cdHide(){
+  if (!state.cdOpen) return;
+  state.cdOpen = false;
+  state.cdCat = null;
+  cdSet(cdH() + 30, true);
+}
+function openCatDetail(catId){
+  state.cdCat = catId;
+  renderCatDetail(catId);
+  if (state.cdOpen) return;                 // 已经开着就只换内容，不重放动画
+  state.cdOpen = true;
+  cdSet(cdH() + 30, false);
+  $('mask').classList.add('on');
+  requestAnimationFrame(() => requestAnimationFrame(() => cdSet(cdHalf(), true)));
+}
+function renderCatDetail(catId){
+  const c = catOf(catId);
+  const list = state.records.filter(inRange).filter(r => r.cat === catId).sort((a, b) => b.ts - a.ts);
+  const total = sum(list);
+  const rangeTotal = sum(state.records.filter(inRange));
+
+  $('cdIcon').textContent = c.icon;
+  $('cdIcon').style.background = c.color + '22';
+  $('cdName').textContent = c.name;
+  $('cdMeta').textContent = rangeDates(state.range, state.anchor) + ' · ' + list.length + ' 笔';
+  $('cdAmt').textContent = '¥' + fmt(total);
+  $('cdPct').textContent = rangeTotal ? '占这个区间 ' + Math.round(total / rangeTotal * 100) + '%' : '';
+  $('cdHint').textContent = list.length > 4 ? '上拉展开看全部 · 下拉收起' : '下拉收起';
+
+  $('cdList').innerHTML = list.length ? list.map(r => {
+    const d = new Date(r.ts);
+    const purl = r.photo ? PHOTO_URL[r.photo] : null;
+    return '<div class="cd-row">' +
+      (purl ? '<img src="' + purl + '" data-photo="' + r.photo + '" alt="">'
+            : '<span class="ph">' + c.icon + '</span>') +
+      '<div class="cd-main">' +
+        '<div class="cd-t">' + md(d) + '</div>' +
+        '<div class="cd-s">' + recSub(r) + '</div>' +
+      '</div>' +
+      '<span class="cd-amt2">¥' + fmt(r.amt) + '</span></div>';
+  }).join('') : '<div class="empty">这个区间里还没有「' + esc(c.name) + '」的记录</div>';
+}
+
+(function initCatDetailDrag(){
+  const grab = $('cdGrab');
+  let startY = 0, startOff = 0, dragging = false, cur = 0, moved = false;
+
+  const down = y => { dragging = true; moved = false; startY = y; startOff = cdOffset(); cur = startOff; };
+  const move = y => {
+    if (!dragging) return;
+    const d = y - startY;
+    if (Math.abs(d) > 6) moved = true;
+    cur = Math.max(0, Math.min(cdH(), startOff + d));
+    cdSet(cur, false);
+  };
+  const up = () => {
+    if (!dragging) return;
+    dragging = false;
+    const h = cdH();
+    if (cur > h * 0.80){                       // 拖得够远 -> 关闭
+      state.cdOpen = false;
+      state.cdCat = null;
+      cdSet(h + 30, true);
+      $('mask').classList.remove('on');
+    } else if (cur < h * 0.26){
+      cdSet(0, true);                          // 吸到全屏
+    } else {
+      cdSet(cdHalf(), true);                   // 吸回半屏
+    }
+  };
+
+  grab.addEventListener('touchstart', e => down(e.touches[0].clientY), {passive:true});
+  grab.addEventListener('touchmove',  e => move(e.touches[0].clientY), {passive:true});
+  grab.addEventListener('touchend',   up);
+  grab.addEventListener('touchcancel', up);
+  grab.addEventListener('mousedown', e => { down(e.clientY); e.preventDefault(); });
+  document.addEventListener('mousemove', e => { if (dragging) move(e.clientY); });
+  document.addEventListener('mouseup', () => { if (dragging) up(); });
+  grab.addEventListener('click', () => {       // 没拖动就是点击 -> 半屏/全屏切换
+    if (moved) return;
+    cdSet(cdOffset() < cdH() * 0.26 ? cdHalf() : 0, true);
+  });
+})();
+
+function applyTheme(){
+  const t = state.theme;
+  const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.setAttribute('content', dark ? '#101215' : '#f4f5f7');
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.th === t));
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (state.theme === 'auto') applyTheme(); });
+
+function openSheet(el){ el.classList.add('on'); $('mask').classList.add('on'); }
+function closeSheets(){
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('on'));
+  $('mask').classList.remove('on');
+  cdHide();
+}
+
+function syncAmountUI(){ $('btnSave').disabled = toCents(state.amount) <= 0; }
+function setAmount(v){ state.amount = v; $('amountInput').value = v; syncAmountUI(); }
+function renderDateRow(){
+  const el = $('dateRow');
+  const t0 = new Date(); t0.setHours(0,0,0,0);
+  let html = '';
+  for (let i = 0; i < 90; i++){
+    const d = new Date(t0.getTime() - i*864e5);
+    const k = dayKey(d.getTime());
+    const lbl = i === 0 ? '今天' : i === 1 ? '昨天' : (d.getMonth()+1) + '/' + d.getDate();
+    html += '<button class="dcell' + (state.selDate === k ? ' on' : '') + '" data-date="' + k + '">' +
+      '<span class="dl">' + lbl + '</span><span class="dw">' + WEEK[d.getDay()] + '</span></button>';
+  }
+  el.innerHTML = html;
+  const sel = el.querySelector('.dcell.on');
+  if (sel){
+    const r1 = sel.getBoundingClientRect(), r0 = el.getBoundingClientRect();
+    el.scrollLeft = Math.max(0, el.scrollLeft + (r1.left - r0.left) - (el.clientWidth - r1.width) / 2);
+  }
+}
+function selectDate(k){
+  state.selDate = k || '';
+  renderDateRow();
+}
+function openSettings(){
+  $('budgetInput').value = state.budget ? fmt(state.budget) : '';
+  applyTheme();
+  showStorage();
+  openSheet($('sheetSet'));
+}
+async function showStorage(){
+  const el = $('storageInfo');
+  if (!el) return;
+  el.textContent = '计算中…';
+  try{
+    let bytes = 0, n = 0;
+    for (const p of await DB.allPhotos()){
+      if (p.blob){ bytes += p.blob.size; n++; }
+    }
+    let quota = '';
+    if (navigator.storage && navigator.storage.estimate){
+      const e = await navigator.storage.estimate();
+      if (e && isFinite(e.usage)) quota = '；浏览器合计已用 ' + (e.usage/1048576).toFixed(1) + ' MB';
+    }
+    el.textContent = '图片 ' + n + ' 张，共 ' + (bytes/1048576).toFixed(1) + ' MB' + quota;
+  }catch(e){ el.textContent = '无法查询'; }
+}
+function closeOne(el){
+  if (el) el.classList.remove('on');
+  if (!document.querySelectorAll('.sheet.on').length) $('mask').classList.remove('on');
+}
+document.querySelectorAll('[data-closeone]').forEach(b =>
+  b.addEventListener('click', () => closeOne(b.closest('.sheet'))));
+
+/* ---------- 图片 ---------- */
+let PHOTO_URL = {}, photoUrls = [];
+const uid = () => String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
+function revokePhotoUrls(){ photoUrls.forEach(u => URL.revokeObjectURL(u)); photoUrls = []; }
+async function syncPhotos(){
+  revokePhotoUrls();
+  PHOTO_URL = {};
+  const ids = [...new Set(state.records.map(r => r.photo).filter(Boolean))];
+  for (const id of ids){
+    try{
+      const p = await DB.getPhoto(id);
+      if (p && p.blob){
+        const u = URL.createObjectURL(p.blob);
+        photoUrls.push(u);
+        PHOTO_URL[id] = u;
+      }
+    }catch(e){}
+  }
+}
+async function refresh(){
+  state.records = await DB.all();
+  await syncPhotos();
+  render();
+}
+function compressImage(file, maxSide, quality){
+  return new Promise(resolve => {
+    const fallback = () => resolve(file);
+    if (typeof createImageBitmap !== 'function') return fallback();
+    createImageBitmap(file).then(bmp => {
+      try{
+        const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+        const w = Math.max(1, Math.round(bmp.width * scale));
+        const h = Math.max(1, Math.round(bmp.height * scale));
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+        if (bmp.close) bmp.close();
+        cv.toBlob(b => resolve(b || file), 'image/jpeg', quality);
+      }catch(e){ fallback(); }
+    }).catch(fallback);
+  });
+}
+function setPhotoPreview(url){
+  if (state.photoPreview) URL.revokeObjectURL(state.photoPreview);
+  state.photoPreview = url;
+}
+function renderPhotoRow(){
+  const row = $('photoRow');
+  const url = state.photoPreview || (state.photoId ? PHOTO_URL[state.photoId] : null);
+  row.innerHTML = url
+    ? '<div class="pthumb"><img src="' + url + '" alt="这顿的照片">' +
+      '<button id="photoDel" aria-label="移除照片">\u00D7</button></div>' +
+      '<button class="pbtn" id="photoPick">换一张</button>'
+    : '<button class="pbtn" id="photoPick">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
+      '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle cx="8.6" cy="10.5" r="1.6"/>' +
+      '<path d="M3.6 16.5l4.6-4 4 3.4 3-2.6 4.2 3.7"/></svg>' +
+      '拍张照 / 选图（选填）</button>';
+  $('photoPick').addEventListener('click', () => $('filePhoto').click());
+  const del = $('photoDel');
+  if (del) del.addEventListener('click', () => {
+    setPhotoPreview(null);
+    state.photoBlob = null;
+    state.photoId = null;
+    renderPhotoRow();
+  });
+}
+function openLightbox(id){
+  const src = PHOTO_URL[id];
+  if (!src) return;
+  $('lbImg').src = src;
+  $('lightbox').classList.add('on');
+}
+
+/* ---------- 分类增删改查 ---------- */
+function renderEmojiPicks(){
+  $('emojiWrap').innerHTML = EMOJI_SETS.map(g =>
+    '<div class="emoji-sec">' + g.name + '</div><div class="emoji-grid">' +
+    g.list.map(e => '<button data-e="' + e + '"' + (e === state.catIcon ? ' class="on"' : '') + '>' + e + '</button>').join('') +
+    '</div>').join('');
+}
+function renderPalette(){
+  $('paletteWrap').innerHTML = PALETTE.map(c =>
+    '<button data-c="' + c + '" style="background:' + c + '"' + (c === state.catColor ? ' class="on"' : '') + '></button>').join('');
+}
+function openCatEditor(id, fromPicker, mode){
+  mode = mode || 'cat';
+  const isMeal = mode === 'meal';
+  const rec = id ? (isMeal ? MEAL_MAP[id] : CAT_MAP[id]) : null;
+
+  state.catMode = mode;
+  state.catEditing = id || null;
+  state.catFromPicker = !!fromPicker;
+  state.catIcon = (!isMeal && rec) ? rec.icon : '\u{1F374}';
+  state.catColor = (!isMeal && rec) ? rec.color : PALETTE[Math.floor(Math.random() * PALETTE.length)];
+  state.catHeavy = (!isMeal && rec) ? !!rec.heavy : false;
+
+  $('catEditTitle').textContent = (rec ? '编辑' : '新建') + (isMeal ? '餐次' : '分类');
+  $('catNameInput').value = rec ? rec.name : '';
+  $('catNameInput').placeholder = isMeal ? '餐次名称，比如「下午茶」' : '分类名称，比如「火锅」';
+  $('catIconInput').value = state.catIcon;
+  $('btnCatDel').classList.toggle('hidden', !rec);
+  $('catHeavyTgl').classList.toggle('on', state.catHeavy);
+  $('catVisual').classList.toggle('hidden', isMeal);      // 餐次不需要图标和颜色
+  if (!isMeal){ renderEmojiPicks(); renderPalette(); }
+  openSheet($('sheetCatEdit'));
+  if (!rec) setTimeout(() => $('catNameInput').focus(), 260);
+}
+function renderCatManage(){
+  $('catManageList').innerHTML = CATS.map(c => {
+    const n = state.records.filter(r => r.cat === c.id).length;
+    return '<button class="cat-item" data-cedit="' + c.id + '">' +
+      '<span class="cic" style="background:' + c.color + '22">' + c.icon + '</span>' +
+      '<span class="cinfo"><span class="cname">' + esc(c.name) +
+        (c.heavy ? ' <span class="tag">高油糖</span>' : '') +
+      '</span><span class="cmeta">' + (n ? n + ' 笔记录' : '还没用过') + '</span></span>' +
+      '<span class="go">编辑</span></button>';
+  }).join('');
+}
+async function reloadCats(){
+  CATS = await DB.allCats();
+  CAT_MAP = Object.fromEntries(CATS.map(c => [c.id, c]));
+  if (state.listCats.length) state.listCats = state.listCats.filter(id => CAT_MAP[id]);
+  renderCatPicker();
+  renderCatManage();
+}
+
+/* ---------- 餐次（早餐/午餐/晚餐/夜宵，可自定义，无图标） ---------- */
+function renderMealChips(){
+  $('mealChips').innerHTML = MEALS.map(m =>
+    '<button class="chip sm' + (state.meal === m.id ? ' on' : '') + '" data-meal="' + m.id + '">' +
+    esc(m.name) + '</button>').join('') +
+    '<button class="chip sm add" data-meal-add="1">\uFF0B 新建</button>';
+}
+function selectMeal(id){
+  state.meal = MEAL_MAP[id] ? id : null;
+  renderMealChips();
+}
+function renderMealManage(){
+  $('mealManageList').innerHTML = MEALS.length ? MEALS.map(m => {
+    const n = state.records.filter(r => r.meal === m.id).length;
+    return '<button class="cat-item" data-medit="' + m.id + '">' +
+      '<span class="cinfo"><span class="cname">' + esc(m.name) + '</span>' +
+      '<span class="cmeta">' + (n ? n + ' 笔记录' : '还没用过') + '</span></span>' +
+      '<span class="go">编辑</span></button>';
+  }).join('') : '<div class="note" style="padding:6px 2px">还没有餐次</div>';
+}
+async function reloadMeals(){
+  MEALS = await DB.allMeals();
+  MEAL_MAP = Object.fromEntries(MEALS.map(m => [m.id, m]));
+  if (state.meal && !MEAL_MAP[state.meal]) state.meal = null;
+  renderMealChips();
+  renderMealManage();
+  renderFilterMeals();
+}
+async function saveCat(){
+  const name = $('catNameInput').value.trim();
+  const isMeal = state.catMode === 'meal';
+  if (!name){ toast(isMeal ? '给餐次起个名字' : '给分类起个名字'); $('catNameInput').focus(); return; }
+
+  if (isMeal){
+    if (MEALS.some(m => m.name === name && m.id !== state.catEditing)){ toast('已经有叫「' + name + '」的餐次了'); return; }
+    const id = state.catEditing || ('m' + uid());
+    const wasNew = !state.catEditing;
+    await DB.putMeal({id, name});
+    state.catEditing = null;
+    await reloadMeals();
+    if (state.catFromPicker) state.meal = id;
+    renderMealChips();
+    closeOne($('sheetCatEdit'));
+    render();
+    toast(wasNew ? '餐次「' + name + '」已创建' : '餐次已更新');
+    return;
+  }
+
+  const icon = ($('catIconInput').value || '').trim();
+  if (CATS.some(c => c.name === name && c.id !== state.catEditing)){ toast('已经有叫「' + name + '」的分类了'); return; }
+  const id = state.catEditing || ('c' + uid());
+  const wasNew = !state.catEditing;
+  await DB.putCat({id, name, icon: [...icon][0] || '\u{1F374}', color: state.catColor, heavy: state.catHeavy});
+  state.catEditing = null;
+  await reloadCats();
+  if (state.catFromPicker) selectCat(id);
+  closeOne($('sheetCatEdit'));
+  render();
+  toast(wasNew ? '分类「' + name + '」已创建' : '分类已更新');
+}
+async function deleteCat(id){
+  if (state.catMode === 'meal'){
+    const m = MEAL_MAP[id];
+    if (!m) return;
+    const rest = MEALS.filter(x => x.id !== id);
+    if (!rest.length){ toast('至少得留一个餐次'); return; }
+    const target = rest[0];
+    const used = state.records.filter(r => r.meal === id);
+    const msg = used.length
+      ? '删除餐次「' + m.name + '」？\n\n有 ' + used.length + ' 笔记录标着它，会转到「' + target.name + '」。'
+      : '删除餐次「' + m.name + '」？';
+    if (!confirm(msg)) return;
+    for (const r of used){ r.meal = target.id; await DB.put(r); }
+    await DB.delMeal(id);
+    if (state.meal === id) state.meal = target.id;
+    state.catEditing = null;
+    await reloadMeals();
+    closeOne($('sheetCatEdit'));
+    await refresh();
+    toast('已删除，' + used.length + ' 笔记录转到「' + target.name + '」');
+    return;
+  }
+
+  const c = CAT_MAP[id];
+  if (!c) return;
+  if (CATS.length <= 1){ toast('至少得留一个分类'); return; }
+  const used = state.records.filter(r => r.cat === id);
+  const rest = CATS.filter(x => x.id !== id);
+  const target = rest[rest.length - 1];
+  const msg = used.length
+    ? '删除「' + c.name + '」？\n\n有 ' + used.length + ' 笔记录在用它，这些记录会转到「' + target.name + '」。'
+    : '删除分类「' + c.name + '」？';
+  if (!confirm(msg)) return;
+  for (const r of used){ r.cat = target.id; await DB.put(r); }
+  await DB.delCat(id);
+  if (state.cat === id) state.cat = '';
+  state.catEditing = null;
+  await reloadCats();
+  closeOne($('sheetCatEdit'));
+  await refresh();
+  if (!CAT_MAP[state.cat]) selectCat(CATS.length ? CATS[0].id : '');
+  toast('已删除，' + used.length + ' 笔记录转到「' + target.name + '」');
+}
+
+function blobToDataURL(blob){
+  return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+}
+function dataURLToBlob(d){
+  const parts = String(d).split(',');
+  const mime = (parts[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+  const bin = atob(parts[1] || '');
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], {type:mime});
+}
+
+function renderCatPicker(){
+  $('catPicker').innerHTML = CATS.map(c =>
+    '<button class="cat" data-cat="' + c.id + '"><span class="ic">' + c.icon +
+    '</span><span class="nm">' + esc(c.name) + '</span></button>').join('') +
+    '<button class="cat add"><span class="ic">\uFF0B</span><span class="nm">新建</span></button>';
+}
+function initStatic(){
+  renderCatPicker();
+  renderMealChips();
+  renderDateRow();
+  $('quickAmts').innerHTML = QUICK.map(q => '<button data-amt="' + q + '">' + q + '</button>').join('');
+}
+function selectCat(id){
+  if (!CAT_MAP[id]) id = CATS.length ? CATS[0].id : '';
+  state.cat = id;
+  document.querySelectorAll('.cat').forEach(x => x.classList.toggle('on', x.dataset.cat === state.cat));
+}
+
+function openAdd(){
+  state.editing = null;
+  state.note = '';
+  $('noteInput').value = '';
+  $('addTitle').textContent = '记一笔';
+  $('btnDeleteInSheet').classList.add('hidden');
+  $('oldDateNote').classList.add('hidden');
+  setAmount('');
+  selectDate(dayKey(Date.now()));
+  setPhotoPreview(null);
+  state.photoBlob = null;
+  state.photoId = null;
+  renderPhotoRow();
+  if (!CAT_MAP[state.cat] && CATS.length) state.cat = CATS[0].id;
+  selectCat(state.cat);
+  selectMeal(null);
+  openSheet($('sheetAdd'));
+  setTimeout(() => $('amountInput').focus(), 260);
+}
+function openEdit(id){
+  const r = state.records.find(x => x.id === id);
+  if (!r) return;
+  state.editing = id;
+  $('addTitle').textContent = '改这笔';
+  $('btnDeleteInSheet').classList.remove('hidden');
+  selectCat(r.cat);
+  setAmount(fmt(r.amt));
+  state.note = r.note || '';
+  $('noteInput').value = state.note;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const rec = new Date(r.ts); rec.setHours(0,0,0,0);
+  const off = Math.round((today - rec) / 864e5);
+  const note = $('oldDateNote');
+  if (off >= 0 && off < 90){
+    state.selDate = dayKey(r.ts);
+    note.textContent = '';
+    note.classList.add('hidden');
+  } else {
+    state.selDate = '';
+    note.textContent = '这条记于 ' + md(r.ts, true) +
+      (off > 90 ? '（' + off + ' 天前）' : '') + '，日期条里选不到这么早。保存后会保持这一天不变。';
+    note.classList.remove('hidden');
+  }
+  renderDateRow();
+  setPhotoPreview(null);
+  state.photoBlob = null;
+  state.photoId = r.photo || null;
+  renderPhotoRow();
+  selectMeal(r.meal || null);
+  openSheet($('sheetAdd'));
+}
+
+$('chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  state.range = b.dataset.r;
+  state.anchor = 0;
+  document.querySelectorAll('#chips .chip').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+$('pgPrev').addEventListener('click', () => { state.anchor--; render(); });
+$('pgNext').addEventListener('click', () => { if (state.anchor < 0){ state.anchor++; render(); } });
+$('pgLabel').addEventListener('click', openDatePicker);
+$('wheelBox').addEventListener('scroll', () => {
+  clearTimeout(pickTimer);
+  pickTimer = setTimeout(() =>
+    setPending(Math.max(0, Math.min(pickItems.length - 1,
+      Math.round($('wheelBox').scrollTop / PICK_H)))), 140);
+}, {passive:true});
+$('wheelItems').addEventListener('click', e => {
+  const el = e.target.closest('[data-wi]'); if (!el) return;
+  const idx = Number(el.dataset.wi);
+  setPending(idx);
+  $('wheelBox').scrollTo({top: idx * PICK_H, behavior:'smooth'});
+});
+$('btnPickOk').addEventListener('click', () => {
+  const it = pickItems[pickPending];
+  if (!it) return;
+  state.anchor = it.anchor;
+  closeOne($('sheetPick'));
+  render();
+  toast('已跳到 ' + rangeDates(state.range, state.anchor));
+});
+$('dateRow').addEventListener('click', e => {
+  const b = e.target.closest('[data-date]'); if (!b) return;
+  selectDate(b.dataset.date);
+});
+document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => {
+  state.tab = b.dataset.tab;
+  document.querySelectorAll('.nav-btn').forEach(x => x.classList.toggle('on', x === b));
+  $('view-structure').classList.toggle('hidden', state.tab !== 'structure');
+  $('view-list').classList.toggle('hidden', state.tab !== 'list');
+  window.scrollTo({top:0});
+}));
+
+$('btnAdd').addEventListener('click', openAdd);
+$('btnSettings').addEventListener('click', openSettings);
+$('mask').addEventListener('click', closeSheets);
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+$('catPicker').addEventListener('click', e => {
+  const b = e.target.closest('.cat'); if (!b) return;
+  if (b.classList.contains('add')){ openCatEditor(null, true); return; }
+  selectCat(b.dataset.cat);
+});
+$('quickAmts').addEventListener('click', e => {
+  const b = e.target.closest('[data-amt]'); if (!b) return;
+  setAmount(fmt(toCents(state.amount) + Number(b.dataset.amt) * 100));
+});
+$('amountInput').addEventListener('input', e => { state.amount = e.target.value; syncAmountUI(); });
+$('noteInput').addEventListener('input', e => { state.note = e.target.value; });
+$('searchInput').addEventListener('input', e => { state.query = e.target.value; renderList(); });
+
+$('donut').addEventListener('click', e => {
+  const seg = e.target.closest('[data-cat]');
+  if (seg) openCatDetail(seg.dataset.cat);
+});
+$('catList').addEventListener('click', e => {
+  const row = e.target.closest('[data-cat]');
+  if (row) openCatDetail(row.dataset.cat);
+});
+$('listCats').addEventListener('click', e => {
+  if (e.target.closest('[data-lc-clear]')){
+    state.listCats = [];
+    renderListCats(); renderList();
+    toast('已清除分类筛选');
+    return;
+  }
+  const b = e.target.closest('[data-lc]'); if (!b) return;
+  const i = state.listCats.indexOf(b.dataset.lc);
+  if (i >= 0) state.listCats.splice(i, 1); else state.listCats.push(b.dataset.lc);
+  renderListCats();
+  renderList();
+});
+$('filterMeals').addEventListener('click', e => {
+  if (e.target.closest('[data-fm-clear]')){
+    state.filterMeals = [];
+    renderFilterMeals(); renderList();
+    toast('已清除餐次筛选');
+    return;
+  }
+  const b = e.target.closest('[data-fm]'); if (!b) return;
+  const i = state.filterMeals.indexOf(b.dataset.fm);
+  if (i >= 0) state.filterMeals.splice(i, 1); else state.filterMeals.push(b.dataset.fm);
+  renderFilterMeals();
+  renderList();
+});
+$('ltReset').addEventListener('click', () => {
+  state.listCats = [];
+  state.filterMeals = [];
+  state.query = '';
+  $('searchInput').value = '';
+  renderListCats();
+  renderFilterMeals();
+  renderList();
+  toast('已重置全部筛选');
+});
+$('mealChips').addEventListener('click', e => {
+  if (e.target.closest('[data-meal-add]')){ openCatEditor(null, true, 'meal'); return; }
+  const b = e.target.closest('[data-meal]'); if (!b) return;
+  selectMeal(b.dataset.meal);
+});
+$('cdList').addEventListener('click', e => {
+  const ph = e.target.closest('[data-photo]');
+  if (ph) openLightbox(ph.dataset.photo);
+});
+
+$('btnSave').addEventListener('click', async () => {
+  const cents = toCents(state.amount);
+  if (cents <= 0) return;
+  if (!state.meal){                                    // 餐次必填
+    toast('先选一下这是哪一餐');
+    $('mealChips').scrollIntoView({block:'center', behavior:'smooth'});
+    return;
+  }
+
+  const base = new Date();
+  const old = state.editing ? state.records.find(r => r.id === state.editing) : null;
+  let ts;
+  if (state.selDate){
+    const p = state.selDate.split('-').map(Number);
+    ts = new Date(p[0], p[1] - 1, p[2], base.getHours(), base.getMinutes()).getTime();
+  } else {
+    ts = old ? old.ts : base.getTime();   // 日期条选不到的旧记录：保持原日期
+  }
+
+  if (state.photoBlob && state.photoId) await DB.putPhoto({id: state.photoId, blob: state.photoBlob});
+
+  const rec = {id: state.editing || (String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7)),
+               amt: cents, cat: state.cat, ts, note: state.note.trim(),
+               photo: state.photoId || null, meal: state.meal || null};
+  await DB.put(rec);
+  if (old && old.photo && old.photo !== rec.photo) await DB.delPhoto(old.photo);
+
+  state.editing = null;
+  await refresh();
+  closeSheets();
+
+  const a = new Date(ts); a.setHours(0,0,0,0);
+  const b = new Date();   b.setHours(0,0,0,0);
+  const off = Math.round((b - a) / 864e5);
+  const when = off === 0 ? '' : off === 1 ? ' · 昨天' : off === 2 ? ' · 前天' : ' · ' + md(ts);
+  const mn = mealOf(rec.meal);
+  toast('已记 ¥' + fmt(cents) + ' · ' + catOf(rec.cat).name + (mn ? ' · ' + mn.name : '') + when);
+});
+
+$('recordList').addEventListener('click', e => {
+  if (e.target.closest('#btnMoreList')){ openFullList(); return; }
+  const ph = e.target.closest('[data-photo]');
+  if (ph){ openLightbox(ph.dataset.photo); return; }
+  const row = e.target.closest('[data-edit]');
+  if (row) openEdit(row.dataset.edit);
+});
+$('fullList').addEventListener('click', e => {
+  const ph = e.target.closest('[data-photo]');
+  if (ph){ openLightbox(ph.dataset.photo); return; }
+  const row = e.target.closest('[data-edit]');
+  if (row) openEdit(row.dataset.edit);
+});
+$('cdList').addEventListener('click', e => {
+  const ph = e.target.closest('[data-photo]');
+  if (ph){ openLightbox(ph.dataset.photo); return; }
+  const row = e.target.closest('[data-edit]');
+  if (row) openEdit(row.dataset.edit);
+});
+
+$('btnDeleteInSheet').addEventListener('click', async () => {
+  if (!state.editing) return;
+  const rec = state.records.find(x => x.id === state.editing);
+  await DB.del(state.editing);
+  if (rec && rec.photo) await DB.delPhoto(rec.photo);
+  state.editing = null;
+  await refresh();
+  closeSheets();
+  toast('已删除');
+});
+
+$('budgetInput').addEventListener('change', async e => {
+  const c = toCents(e.target.value);
+  state.budget = c;
+  await DB.setMeta('budget', c);
+  e.target.value = c ? fmt(c) : '';
+  render();
+  toast(c ? '月预算已设为 ¥' + fmt(c) : '已取消预算');
+});
+
+$('themeSeg').addEventListener('click', async e => {
+  const b = e.target.closest('[data-th]'); if (!b) return;
+  state.theme = b.dataset.th;
+  await DB.setMeta('theme', state.theme);
+  applyTheme();
+});
+
+$('btnCats').addEventListener('click', () => { renderCatManage(); openSheet($('sheetCats')); });
+$('btnNewCat').addEventListener('click', () => openCatEditor(null, false, 'cat'));
+$('catManageList').addEventListener('click', e => {
+  const b = e.target.closest('[data-cedit]'); if (b) openCatEditor(b.dataset.cedit, false, 'cat');
+});
+$('btnNewMeal').addEventListener('click', () => openCatEditor(null, false, 'meal'));
+$('mealManageList').addEventListener('click', e => {
+  const b = e.target.closest('[data-medit]'); if (b) openCatEditor(b.dataset.medit, false, 'meal');
+});
+$('btnCatSave').addEventListener('click', saveCat);
+$('btnCatDel').addEventListener('click', () => { if (state.catEditing) deleteCat(state.catEditing); });
+$('catHeavyTgl').addEventListener('click', () => {
+  state.catHeavy = !state.catHeavy;
+  $('catHeavyTgl').classList.toggle('on', state.catHeavy);
+});
+$('emojiWrap').addEventListener('click', e => {
+  const b = e.target.closest('[data-e]'); if (!b) return;
+  state.catIcon = b.dataset.e;
+  $('catIconInput').value = state.catIcon;
+  renderEmojiPicks();
+});
+$('paletteWrap').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  state.catColor = b.dataset.c;
+  renderPalette();
+});
+$('catIconInput').addEventListener('input', e => {
+  state.catIcon = e.target.value;
+  renderEmojiPicks();
+});
+
+$('filePhoto').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try{
+    const blob = await compressImage(f, 800, 0.65);
+    state.photoBlob = blob;
+    state.photoId = uid();
+    setPhotoPreview(URL.createObjectURL(blob));
+    renderPhotoRow();
+  }catch(err){ toast('这张图读不出来'); }
+});
+$('lbClose').addEventListener('click', () => $('lightbox').classList.remove('on'));
+$('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') $('lightbox').classList.remove('on'); });
+
+function download(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const stamp = () => { const d = new Date(); return d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()); };
+
+$('btnExport').addEventListener('click', async () => {
+  const ids = [...new Set(state.records.map(r => r.photo).filter(Boolean))];
+  const photos = {};
+  for (const id of ids){
+    try{
+      const p = await DB.getPhoto(id);
+      if (p && p.blob) photos[id] = await blobToDataURL(p.blob);
+    }catch(e){}
+  }
+  const data = {v:4, app:'mealmeter', exportedAt:new Date().toISOString(),
+    budget:state.budget, cats:CATS, meals:MEALS,
+    records:[...state.records].sort((a, b) => a.ts - b.ts), photos};
+  download(new Blob([JSON.stringify(data)], {type:'application/json'}), '大胃袋备份-' + stamp() + '.json');
+  toast('已导出 ' + state.records.length + ' 条' + (ids.length ? ' · ' + ids.length + ' 张图' : ''));
+});
+
+$('btnExportCsv').addEventListener('click', () => {
+  const rows = [['日期','时间','餐次','分类','金额','高油高糖','备注']];
+  for (const r of [...state.records].sort((a, b) => a.ts - b.ts)){
+    const d = new Date(r.ts);
+    const c = catOf(r.cat);
+    const mn = mealOf(r.meal);
+    rows.push([dayKey(r.ts), pad(d.getHours()) + ':' + pad(d.getMinutes()), mn ? mn.name : '', c.name,
+      (r.amt / 100).toFixed(2), c.heavy ? '是' : '', (r.note || '').replace(/[",\n]/g, ' ')]);
+  }
+  const csv = '\ufeff' + rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\r\n');
+  download(new Blob([csv], {type:'text/csv;charset=utf-8'}), '大胃袋-' + stamp() + '.csv');
+  toast('已导出 CSV');
+});
+
+$('btnImport').addEventListener('click', () => $('fileImport').click());
+$('fileImport').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    const rows = Array.isArray(data) ? data : data.records;
+    if (!Array.isArray(rows)) throw new Error('bad');
+
+    if (Array.isArray(data.cats)){
+      for (const c of data.cats){
+        if (!c || !c.id || !c.name) continue;
+        await DB.putCat({
+          id: String(c.id), name: String(c.name).slice(0, 10),
+          icon: typeof c.icon === 'string' && c.icon ? [...c.icon][0] : '\u{1F374}',
+          color: typeof c.color === 'string' ? c.color : '#888780',
+          heavy: !!c.heavy
+        });
+      }
+      await reloadCats();
+    }
+    if (Array.isArray(data.meals)){
+      for (const m of data.meals){
+        if (!m || !m.id || !m.name) continue;
+        await DB.putMeal({id: String(m.id), name: String(m.name).slice(0, 10)});
+      }
+      await reloadMeals();
+    }
+    if (data.photos && typeof data.photos === 'object'){
+      for (const [id, d] of Object.entries(data.photos)){
+        try{ await DB.putPhoto({id, blob:dataURLToBlob(d)}); }catch(err){}
+      }
+    }
+
+    let n = 0;
+    for (const r of rows){
+      const amt = Math.round(Number(r.amt)), ts = Number(r.ts);
+      if (!isFinite(amt) || amt <= 0 || !isFinite(ts)) continue;
+      await DB.put({id: String(r.id || uid()), amt, ts,
+        cat: CAT_MAP[r.cat] ? r.cat : (CATS[0] ? CATS[0].id : 'other'),
+        note: typeof r.note === 'string' ? r.note.slice(0, 40) : '',
+        photo: r.photo ? String(r.photo) : null,
+        meal: MEAL_MAP[r.meal] ? r.meal : null});
+      n++;
+    }
+    if (!state.budget && data.budget){ state.budget = Math.round(Number(data.budget)) || 0; await DB.setMeta('budget', state.budget); }
+    await refresh();
+    toast('导入 ' + n + ' 条');
+  }catch(err){ toast('文件格式不对'); }
+});
+
+$('btnClear').addEventListener('click', async () => {
+  if (!confirm('确定清空全部记录？此操作不可恢复。\n建议先导出备份。')) return;
+  await DB.clear();
+  state.records = [];
+  render();
+  closeSheets();
+  toast('已清空');
+});
+
+(async function start(){
+  try{
+    state.records = await DB.all();
+    let cats = await DB.allCats();
+    if (!cats.length){
+      for (const c of SEED_CATS) await DB.putCat(c);
+      cats = await DB.allCats();
+    }
+    CATS = cats;
+    CAT_MAP = Object.fromEntries(CATS.map(c => [c.id, c]));
+    let meals = await DB.allMeals();
+    if (!meals.length){
+      for (const m of SEED_MEALS) await DB.putMeal(m);
+      meals = await DB.allMeals();
+    }
+    MEALS = meals;
+    MEAL_MAP = Object.fromEntries(MEALS.map(m => [m.id, m]));
+    state.budget = Math.round(Number(await DB.getMeta('budget'))) || 0;
+    state.theme = (await DB.getMeta('theme')) || 'auto';
+    await syncPhotos();
+  }catch(e){
+    toast('本机存储不可用，请用浏览器打开');
+  }
+  state.cat = CATS.length ? CATS[0].id : '';
+  applyTheme();
+  initStatic();
+  renderCatManage();
+  renderMealManage();
+  render();
+  if (new URLSearchParams(location.search).get('action') === 'add') setTimeout(openAdd, 320);
+})();
+
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
