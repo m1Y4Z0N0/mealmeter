@@ -100,30 +100,30 @@ save(content, os.path.join(ROOT, "assets-src", "mascot.png"))
 # ---------- 2. 定义所有输出 ----------
 targets = [
     # web / PWA
-    ("www/icon-192.png",          192, 0.82, False),
-    ("www/icon-512.png",          512, 0.82, False),
-    ("www/icon-maskable-512.png", 512, 0.58, False),
-    ("www/apple-touch-icon.png",  180, 0.82, False),
+    ("www/icon-192.png",          192, 0.70, False),
+    ("www/icon-512.png",          512, 0.70, False),
+    ("www/icon-maskable-512.png", 512, 0.50, False),
+    ("www/apple-touch-icon.png",  180, 0.70, False),
     # Android legacy mipmap
-    ("android/app/src/main/res/mipmap-mdpi/ic_launcher.png",     48,  0.80, False),
-    ("android/app/src/main/res/mipmap-hdpi/ic_launcher.png",     72,  0.80, False),
-    ("android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",    96,  0.80, False),
-    ("android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",   144, 0.80, False),
-    ("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",  192, 0.80, False),
+    ("android/app/src/main/res/mipmap-mdpi/ic_launcher.png",     48,  0.68, False),
+    ("android/app/src/main/res/mipmap-hdpi/ic_launcher.png",     72,  0.68, False),
+    ("android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",    96,  0.68, False),
+    ("android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",   144, 0.68, False),
+    ("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",  192, 0.68, False),
     # Android 圆形图标
-    ("android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",    48,  0.68, True),
-    ("android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",    72,  0.68, True),
-    ("android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",   96,  0.68, True),
-    ("android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",  144, 0.68, True),
-    ("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png", 192, 0.68, True),
+    ("android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",    48,  0.58, True),
+    ("android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",    72,  0.58, True),
+    ("android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",   96,  0.58, True),
+    ("android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",  144, 0.58, True),
+    ("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png", 192, 0.58, True),
     # 启动画面用的高分辨率形象（透明底，nodpi 目录不会按密度缩放）
-    ("android/app/src/main/res/drawable-nodpi/splash_mascot.png", 512, 0.86, False),
+    ("android/app/src/main/res/drawable-nodpi/splash_mascot.png", 512, 0.76, False),
     # Android 自适应图标前景（108dp 画布，内容占 66dp 安全区，背景透明）
-    ("android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",    108, 0.61, False),
-    ("android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",    162, 0.61, False),
-    ("android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",   216, 0.61, False),
-    ("android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",  324, 0.61, False),
-    ("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png", 432, 0.61, False),
+    ("android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",    108, 0.53, False),
+    ("android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",    162, 0.53, False),
+    ("android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",   216, 0.53, False),
+    ("android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",  324, 0.53, False),
+    ("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png", 432, 0.53, False),
 ]
 
 print("\n生成:")
