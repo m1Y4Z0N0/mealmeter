@@ -926,15 +926,30 @@ function renderBudget(){
   const over = left < 0;
   const color = over ? 'var(--danger)' : (pct > .85 ? '#EF9F27' : '#1D9E75');
   const perDay = Math.max(0, Math.floor(left / daysLeft));
+  // 今天还能花 = 今天的动态配额 − 今天已花（配额本身包含今天已花的部分，必须扣掉）
+  const td = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todaySpent = sum(state.records.filter(r => r.ts >= td && r.ts < td + 864e5));
+  const todayLeft = perDay - todaySpent;
+
+  let bigHtml, subHtml;
+  const tail = ' · 还剩 ' + daysLeft + ' 天 · 预算余 ¥' + fmt(left);
+  if (over){
+    bigHtml = '<div class="bud-big warn">已超支 ¥' + fmt(-left) + '<span class="u"></span></div>';
+    subHtml = '已花 ¥' + fmt(spent) + ' · 本月预算已用完';
+  } else if (todayLeft >= 0){
+    bigHtml = '<div class="bud-big">¥' + fmt(todayLeft) + '<span class="u"> / 今天还能花</span></div>';
+    subHtml = '今天配额 ¥' + fmt(perDay) + '，已花 ¥' + fmt(todaySpent) + tail;
+  } else {
+    bigHtml = '<div class="bud-big warn">¥' + fmt(-todayLeft) + '<span class="u"> / 今天已超</span></div>';
+    subHtml = '今天配额 ¥' + fmt(perDay) + '，已花 ¥' + fmt(todaySpent) + tail;
+  }
 
   slot.innerHTML =
     '<div class="card pad0">' +
       '<div class="bud-top"><span class="bud-k">本月预算</span>' +
         '<span class="bud-v">¥' + fmt(state.budget) + '</span></div>' +
-      '<div class="bud-big' + (over ? ' warn' : '') + '">' + (over ? '已超支 ¥' + fmt(-left) : '¥' + fmt(perDay)) +
-        '<span class="u">' + (over ? '' : ' / 今天还能花') + '</span></div>' +
-      '<div class="bud-sub">已花 ¥' + fmt(spent) + ' · 还剩 ' + daysLeft + ' 天' +
-        (over ? '' : ' · 预算余 ¥' + fmt(left)) + '</div>' +
+      bigHtml +
+      '<div class="bud-sub">' + subHtml + '</div>' +
       '<div class="bud-bar"><i style="width:' + (pct * 100).toFixed(1) + '%;background:' + color + '"></i></div>' +
     '</div>';
 }
