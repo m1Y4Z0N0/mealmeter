@@ -38,3 +38,6 @@ local.properties
 # 本地笔记
 NOTES.md
 TODO.local.md
+
+# 图标原图不入公开仓库
+assets-src/

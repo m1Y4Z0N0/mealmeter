@@ -1,4 +1,4 @@
-const CACHE = 'mealmeter-v19';
+const CACHE = 'mealmeter-v20';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'

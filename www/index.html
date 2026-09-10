@@ -252,6 +252,8 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
 .palette button.on{box-shadow:0 0 0 2.5px var(--card),0 0 0 4.5px var(--ink)}
 
 .cat-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;width:100%;text-align:left}
+.grip{flex:0 0 auto;color:var(--faint);padding:8px 6px 8px 0;margin-left:-6px;font-size:14px;letter-spacing:2px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.cat-item.dragging{position:relative;z-index:5;background:var(--card);box-shadow:0 8px 22px rgba(0,0,0,.16);opacity:.97}
 .cat-item:active{background:var(--soft)}
 .cat-item .cic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
   font-size:19px;flex:0 0 auto}
@@ -1421,6 +1423,7 @@ function renderCatManage(){
   $('catManageList').innerHTML = CATS.map(c => {
     const n = state.records.filter(r => r.cat === c.id).length;
     return '<button class="cat-item" data-cedit="' + c.id + '">' +
+      '<span class="grip" data-grip aria-label="长按拖动排序">⋮⋮</span>' +
       '<span class="cic" style="background:' + c.color + '22">' + c.icon + '</span>' +
       '<span class="cinfo"><span class="cname">' + esc(c.name) +
         (c.heavy ? ' <span class="tag">高油糖</span>' : '') +
@@ -1430,6 +1433,10 @@ function renderCatManage(){
 }
 async function reloadCats(){
   CATS = await DB.allCats();
+  if (CATS.some(c => typeof c.order !== 'number')){          // 旧数据迁移：补 order 字段
+    await Promise.all(CATS.map((c, i) => (c.order = i, DB.putCat(c))));
+  }
+  CATS.sort((a, b) => (a.order || 0) - (b.order || 0));
   CAT_MAP = Object.fromEntries(CATS.map(c => [c.id, c]));
   if (state.listCats.length) state.listCats = state.listCats.filter(id => CAT_MAP[id]);
   renderCatPicker();
@@ -1451,13 +1458,101 @@ function renderMealManage(){
   $('mealManageList').innerHTML = MEALS.length ? MEALS.map(m => {
     const n = state.records.filter(r => r.meal === m.id).length;
     return '<button class="cat-item" data-medit="' + m.id + '">' +
+      '<span class="grip" data-grip aria-label="长按拖动排序">⋮⋮</span>' +
       '<span class="cinfo"><span class="cname">' + esc(m.name) + '</span>' +
       '<span class="cmeta">' + (n ? n + ' 笔记录' : '还没用过') + '</span></span>' +
       '<span class="go">编辑</span></button>';
   }).join('') : '<div class="note" style="padding:6px 2px">还没有餐次</div>';
 }
+
+/* ---------- 拖拽排序（分类 & 餐次共用） ---------- */
+let suppressClick = false;
+document.addEventListener('click', e => {
+  if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; }
+}, true);
+
+function enableDragSort(container, onDone){
+  let drag = null;
+  container.addEventListener('pointerdown', e => {
+    const grip = e.target.closest('[data-grip]');
+    if (!grip) return;
+    const row = grip.closest('.cat-item');
+    if (!row) return;
+    e.preventDefault();
+    drag = {row, grab: e.clientY - row.getBoundingClientRect().top, startY: e.clientY, T: 0, moved: false};
+    try{ grip.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  container.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved){
+      if (Math.abs(e.clientY - drag.startY) < 5) return;
+      drag.moved = true;
+      drag.row.classList.add('dragging');
+    }
+    const row = drag.row;
+    const rect = row.getBoundingClientRect();
+    drag.T = (e.clientY - drag.grab) - (rect.top - drag.T);   // 让行跟着手指走
+    row.style.transform = 'translateY(' + drag.T.toFixed(1) + 'px)';
+    const centerY = e.clientY - drag.grab + rect.height / 2;
+    for (const o of container.querySelectorAll('.cat-item')){  // 越过邻行中点就交换位置
+      if (o === row) continue;
+      const or = o.getBoundingClientRect();
+      const mid = or.top + or.height / 2;
+      const pos = row.compareDocumentPosition(o);
+      if (centerY > mid && (pos & Node.DOCUMENT_POSITION_FOLLOWING)){
+        container.insertBefore(row, o.nextSibling); break;
+      }
+      if (centerY < mid && (pos & Node.DOCUMENT_POSITION_PRECEDING)){
+        container.insertBefore(row, o); break;
+      }
+    }
+  });
+  const finish = () => {
+    if (!drag) return;
+    drag.row.classList.remove('dragging');
+    drag.row.style.transform = '';
+    const moved = drag.moved;
+    drag = null;
+    if (moved){
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 350);
+      onDone([...container.querySelectorAll('.cat-item')]
+        .map(x => x.dataset.cedit || x.dataset.medit).filter(Boolean));
+    }
+  };
+  container.addEventListener('pointerup', finish);
+  container.addEventListener('pointercancel', finish);
+}
+async function persistCatOrder(ids){
+  if (ids.length !== CATS.length) return;
+  const map = Object.fromEntries(CATS.map(c => [c.id, c]));
+  CATS = ids.map(id => map[id]).filter(Boolean);
+  CATS.forEach((c, i) => c.order = i);
+  await Promise.all(CATS.map(c => DB.putCat(c)));
+  renderCatPicker();
+  renderCatManage();
+  render();
+  toast('分类顺序已保存');
+}
+async function persistMealOrder(ids){
+  if (ids.length !== MEALS.length) return;
+  const map = Object.fromEntries(MEALS.map(m => [m.id, m]));
+  MEALS = ids.map(id => map[id]).filter(Boolean);
+  MEALS.forEach((m, i) => m.order = i);
+  await Promise.all(MEALS.map(m => DB.putMeal(m)));
+  renderMealChips();
+  renderFilterMeals();
+  renderMealManage();
+  toast('餐次顺序已保存');
+}
+enableDragSort($('catManageList'), persistCatOrder);
+enableDragSort($('mealManageList'), persistMealOrder);
 async function reloadMeals(){
   MEALS = await DB.allMeals();
+  if (MEALS.some(m => typeof m.order !== 'number')){
+    await Promise.all(MEALS.map((m, i) => (m.order = i, DB.putMeal(m))));
+  }
+  MEALS.sort((a, b) => (a.order || 0) - (b.order || 0));
   MEAL_MAP = Object.fromEntries(MEALS.map(m => [m.id, m]));
   if (state.meal && !MEAL_MAP[state.meal]) state.meal = null;
   renderMealChips();
@@ -1473,7 +1568,8 @@ async function saveCat(){
     if (MEALS.some(m => m.name === name && m.id !== state.catEditing)){ toast('已经有叫「' + name + '」的餐次了'); return; }
     const id = state.catEditing || ('m' + uid());
     const wasNew = !state.catEditing;
-    await DB.putMeal({id, name});
+    const mOrder = state.catEditing ? (MEAL_MAP[id] ? MEAL_MAP[id].order : MEALS.length) : MEALS.length;
+    await DB.putMeal({id, name, order: mOrder});
     state.catEditing = null;
     await reloadMeals();
     if (state.catFromPicker) state.meal = id;
@@ -1488,7 +1584,8 @@ async function saveCat(){
   if (CATS.some(c => c.name === name && c.id !== state.catEditing)){ toast('已经有叫「' + name + '」的分类了'); return; }
   const id = state.catEditing || ('c' + uid());
   const wasNew = !state.catEditing;
-  await DB.putCat({id, name, icon: [...icon][0] || '\u{1F374}', color: state.catColor, heavy: state.catHeavy});
+  const order = state.catEditing ? (CAT_MAP[id] ? CAT_MAP[id].order : CATS.length) : CATS.length;
+  await DB.putCat({id, name, icon: [...icon][0] || '\u{1F374}', color: state.catColor, heavy: state.catHeavy, order});
   state.catEditing = null;
   await reloadCats();
   if (state.catFromPicker) selectCat(id);
@@ -1923,7 +2020,8 @@ $('fileImport').addEventListener('change', async e => {
           id: String(c.id), name: String(c.name).slice(0, 10),
           icon: typeof c.icon === 'string' && c.icon ? [...c.icon][0] : '\u{1F374}',
           color: typeof c.color === 'string' ? c.color : '#888780',
-          heavy: !!c.heavy
+          heavy: !!c.heavy,
+          order: typeof c.order === 'number' ? c.order : undefined
         });
       }
       await reloadCats();
@@ -1931,7 +2029,8 @@ $('fileImport').addEventListener('change', async e => {
     if (Array.isArray(data.meals)){
       for (const m of data.meals){
         if (!m || !m.id || !m.name) continue;
-        await DB.putMeal({id: String(m.id), name: String(m.name).slice(0, 10)});
+        await DB.putMeal({id: String(m.id), name: String(m.name).slice(0, 10),
+          order: typeof m.order === 'number' ? m.order : undefined});
       }
       await reloadMeals();
     }
@@ -1972,14 +2071,14 @@ $('btnClear').addEventListener('click', async () => {
     state.records = await DB.all();
     let cats = await DB.allCats();
     if (!cats.length){
-      for (const c of SEED_CATS) await DB.putCat(c);
+      for (const [i, c] of SEED_CATS.entries()) await DB.putCat({...c, order: i});
       cats = await DB.allCats();
     }
     CATS = cats;
     CAT_MAP = Object.fromEntries(CATS.map(c => [c.id, c]));
     let meals = await DB.allMeals();
     if (!meals.length){
-      for (const m of SEED_MEALS) await DB.putMeal(m);
+      for (const [i, m] of SEED_MEALS.entries()) await DB.putMeal({...m, order: i});
       meals = await DB.allMeals();
     }
     MEALS = meals;
