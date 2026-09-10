@@ -13,11 +13,15 @@ public class MainActivity extends BridgeActivity {
 
     // 把系统栏高度写入 CSS 变量，网页用它撑开顶部/底部，
     // 自己的背景色会延伸到状态栏/导航栏底下 —— 深浅模式都无缝。
+    // 注意：insets 是物理像素，CSS 用的是密度无关像素，必须除以 density。
     private void pushInsets() {
         if (webView == null || lastTop < 0) return;
+        float density = getResources().getDisplayMetrics().density;
+        int top = Math.round(lastTop / density);
+        int bottom = Math.round(lastBottom / density);
         String js = "try{var d=document.documentElement;"
-                + "d.style.setProperty('--sat','" + lastTop + "px');"
-                + "d.style.setProperty('--sab','" + lastBottom + "px');}catch(e){}";
+                + "d.style.setProperty('--sat','" + top + "px');"
+                + "d.style.setProperty('--sab','" + bottom + "px');}catch(e){}";
         webView.evaluateJavascript(js, null);
     }
 
