@@ -33,6 +33,8 @@ android/app/src/main/res/xml/config.xml
 *.aab
 *.jks
 *.keystore
+# 固定签名密钥例外：必须入库，云端构建才能签出一致的上传包
+!android/app/mealmeter-debug.keystore
 local.properties
 
 # 本地笔记
