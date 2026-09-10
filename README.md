@@ -98,6 +98,8 @@ npm run sync         # 把 www 同步进 Android 工程
 push 到 `main` 后自动触发；手动触发：Actions 页 → 构建 Android APK → Run workflow。
 构建约 3–5 分钟，在该次运行页面的 **Artifacts** 区下载 `mealmeter-debug-apk`。
 
+**发布**：每次出新包后，建议在 **Releases** 页发一个版本并附上 APK —— Release 资产**无需登录**即可下载（Artifacts 需要），手机浏览器直接点开链接就能下。
+
 **方式二：本地构建**
 
 需要 JDK 17+ 与 Android SDK：
@@ -110,10 +112,12 @@ npm run apk        # = cap sync android && gradlew assembleDebug
 
 ## 安装到手机
 
-1. 从 Actions 的 Artifacts 下载 `mealmeter-debug-apk.zip`，解压得到 `app-debug.apk`
-2. 传到手机（微信文件传输助手 / 数据线 / 网盘均可）
-3. 手机上点开 APK → 系统提示「禁止安装未知应用」→ 去设置允许对应来源（浏览器/文件管理器）→ 返回继续安装
-4. 装完桌面出现「大胃袋」图标
+1. **下载 APK**（任选其一）：
+   - 最简单：手机浏览器直接打开 [Releases 最新版](https://github.com/m1Y4Z0N0/mealmeter/releases/latest)，点下方的 `MealMeter-…-debug.apk` 下载，**无需登录 GitHub**
+   - 或者：从某次 Actions 运行页底部的 **Artifacts** 下载 `mealmeter-debug-apk.zip`，解压得到 `app-debug.apk`（需登录）
+   - 或者：电脑下载后通过微信文件传输助手 / 数据线传到手机
+2. 手机上点开 APK → 系统提示「禁止安装未知应用」→ 去设置允许对应来源（浏览器/文件管理器）→ 返回继续安装
+3. 装完桌面出现「大胃袋」图标
 
 > Debug 签名自用完全没问题，但不能上架应用商店；以后想出正式签名包，配一个 keystore 走 `assembleRelease` 即可。
 
