@@ -30,14 +30,14 @@ body{
   font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
   background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;
   -webkit-font-smoothing:antialiased;
-  padding-bottom:calc(92px + env(safe-area-inset-bottom));
+  padding-bottom:calc(92px + var(--sab,0px));
   transition:background .2s,color .2s;
 }
 .wrap{max-width:560px;margin:0 auto;padding:0 16px}
 button{font-family:inherit;font-size:inherit;border:0;background:none;color:inherit;cursor:pointer;padding:0}
 input{font-family:inherit}
 
-header{padding-top:calc(18px + env(safe-area-inset-top))}
+header{padding-top:calc(18px + var(--sat,0px))}
 .hd{display:flex;align-items:flex-start;justify-content:space-between}
 .hd-label{font-size:13px;color:var(--dim);margin-bottom:2px}
 .hd-label .dt{color:var(--text);font-weight:500}
@@ -137,7 +137,7 @@ html[data-theme="dark"] .tag{background:rgba(226,119,106,.16);color:#e8956f}
 .searchrow svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--faint)}
 
 nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);
-  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  border-top:1px solid var(--line);padding-bottom:var(--sab,0px)}
 .nav-in{max-width:560px;margin:0 auto;height:64px;display:flex;align-items:center;position:relative}
 .nav-btn{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   color:var(--faint);font-size:11px;transition:.15s}
@@ -155,7 +155,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);
 .mask.on{opacity:1;pointer-events:auto}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);color:var(--text);
   border-radius:22px 22px 0 0;transform:translateY(102%);transition:transform .28s cubic-bezier(.32,.72,0,1);
-  padding-bottom:calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto}
+  padding-bottom:calc(20px + var(--sab,0px));max-height:92vh;overflow-y:auto}
 .sheet.on{transform:translateY(0)}
 .sheet-in{max-width:560px;margin:0 auto;padding:0 18px}
 .grab{width:36px;height:4px;border-radius:2px;background:var(--track);margin:10px auto 0}
@@ -220,7 +220,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);
 .set-item.danger b{color:var(--danger)}
 .grp{margin-top:24px;font-size:13px;color:var(--dim)}
 .note{font-size:12px;color:var(--faint);line-height:1.7;padding:14px 2px 4px}
-.toast{position:fixed;left:50%;bottom:104px;transform:translate(-50%,14px);z-index:90;
+.toast{position:fixed;left:50%;bottom:calc(104px + var(--sab,0px));transform:translate(-50%,14px);z-index:90;
   background:rgba(22,24,29,.93);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:11px;
   opacity:0;pointer-events:none;transition:.22s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
@@ -275,7 +275,7 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
   align-items:center;justify-content:center;padding:20px}
 .lb.on{display:flex}
 .lb img{max-width:100%;max-height:86vh;border-radius:12px;display:block}
-.lb button{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;
+.lb button{position:absolute;top:calc(16px + var(--sat,0px));right:16px;width:38px;height:38px;
   border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:19px;line-height:1;
   display:flex;align-items:center;justify-content:center;padding:0}
 /* 明细页：顶部合计 */
@@ -349,9 +349,9 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
   </div>
   <div class="wrap">
     <div class="chips" id="chips">
-      <button class="chip" data-r="today">日</button>
+      <button class="chip on" data-r="today">日</button>
       <button class="chip" data-r="week">周</button>
-      <button class="chip on" data-r="month">月</button>
+      <button class="chip" data-r="month">月</button>
       <button class="chip" data-r="year">年</button>
       <button class="chip" data-r="all">全部</button>
     </div>
@@ -699,7 +699,7 @@ const DB = (() => {
 
 const $ = id => document.getElementById(id);
 const state = {
-  records:[], range:'month', anchor:0, tab:'structure', cat:'', amount:'', note:'',
+  records:[], range:'today', anchor:0, tab:'structure', cat:'', amount:'', note:'',
   selDate:'', editing:null, budget:0, theme:'auto', query:'', listCats:[], filterMeals:[], cdCat:null, cdOpen:false,
   listLimit:30,
   photoId:null, photoBlob:null, photoPreview:null, meal:null,
@@ -904,8 +904,7 @@ function arcs(segs){
 
 function renderBudget(){
   const slot = $('budgetSlot');
-  const inMonthView = state.range === 'today' || state.range === 'week' ||
-    (state.range === 'month' && state.anchor === 0);
+  const inMonthView = state.range === 'today';   // 预算卡只在「日」视图显示
   if (!inMonthView){ slot.innerHTML = ''; return; }
   if (!state.budget){
     slot.innerHTML =
@@ -1699,7 +1698,6 @@ function openAdd(){
   selectCat(state.cat);
   selectMeal(null);
   openSheet($('sheetAdd'));
-  setTimeout(() => $('amountInput').focus(), 260);
 }
 function openEdit(id){
   const r = state.records.find(x => x.id === id);
@@ -2087,17 +2085,13 @@ $('btnClear').addEventListener('click', async () => {
     let cats = await DB.allCats();
     if (!cats.length){
       for (const [i, c] of SEED_CATS.entries()) await DB.putCat({...c, order: i});
-      cats = await DB.allCats();
     }
-    CATS = cats;
-    CAT_MAP = Object.fromEntries(CATS.map(c => [c.id, c]));
+    await reloadCats();            // 迁移缺失的 order 字段，并按 order 排序
     let meals = await DB.allMeals();
     if (!meals.length){
       for (const [i, m] of SEED_MEALS.entries()) await DB.putMeal({...m, order: i});
-      meals = await DB.allMeals();
     }
-    MEALS = meals;
-    MEAL_MAP = Object.fromEntries(MEALS.map(m => [m.id, m]));
+    await reloadMeals();           // 同上
     state.budget = Math.round(Number(await DB.getMeta('budget'))) || 0;
     state.theme = (await DB.getMeta('theme')) || 'auto';
     await syncPhotos();

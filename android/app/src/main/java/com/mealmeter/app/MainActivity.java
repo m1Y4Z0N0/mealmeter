@@ -1,25 +1,50 @@
 package com.mealmeter.app;
 
 import android.os.Bundle;
+import android.webkit.WebView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private WebView webView;
+    private int lastTop = -1, lastBottom = -1;
+
+    // 把系统栏高度写入 CSS 变量，网页用它撑开顶部/底部，
+    // 自己的背景色会延伸到状态栏/导航栏底下 —— 深浅模式都无缝。
+    private void pushInsets() {
+        if (webView == null || lastTop < 0) return;
+        String js = "try{var d=document.documentElement;"
+                + "d.style.setProperty('--sat','" + lastTop + "px');"
+                + "d.style.setProperty('--sab','" + lastBottom + "px');}catch(e){}";
+        webView.evaluateJavascript(js, null);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Android 15+ 强制 edge-to-edge，WebView 会画到状态栏/导航栏底下。
-        // 把系统栏的高度转成 content 的 padding，让整个网页内容整体下移，
-        // 所有页面（结构/明细/设置/各弹窗）一次修正。
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), (v, windowInsets) -> {
-            Insets bars = windowInsets.getInsets(
+        webView = bridge.getWebView();
+        ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
+            Insets bars = insets.getInsets(
                     WindowInsetsCompat.Type.statusBars()
                             | WindowInsetsCompat.Type.displayCutout()
                             | WindowInsetsCompat.Type.navigationBars());
-            v.setPadding(0, bars.top, 0, bars.bottom);
-            return windowInsets;
+            if (bars.top != lastTop || bars.bottom != lastBottom) {
+                lastTop = bars.top;
+                lastBottom = bars.bottom;
+                pushInsets();
+            }
+            return insets;
         });
+        // insets 分发早于页面加载完成，延迟重放两次保证变量写进已加载的页面
+        webView.postDelayed(this::pushInsets, 600);
+        webView.postDelayed(this::pushInsets, 1600);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        pushInsets();
     }
 }
