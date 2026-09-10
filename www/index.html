@@ -307,7 +307,7 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
   transform:translateY(110%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
 .sheet.drag .grab{width:100%;height:auto;background:none;margin:0;padding:12px 0 8px;
   cursor:grab;touch-action:none;flex:0 0 auto}
-.sheet.drag .grab i{display:block;width:36px;height:4px;border-radius:2px;background:var(--track);margin:0 auto}
+.sheet.drag .grab i{display:block;width:100%;height:4px;border-radius:0;background:var(--track);margin:0 auto}
 .cd-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .cd-head{display:flex;align-items:center;gap:12px;padding:4px 0 14px;border-bottom:1px solid var(--line);flex:0 0 auto}
 .cd-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
@@ -1055,7 +1055,8 @@ function chipRow(el, items, selected, dataAttr, clearAttr, withDot){
 }
 function renderListCats(){
   state.listCats = state.listCats.filter(id => CAT_MAP[id]);   // 分类被删掉的就从筛选里移除
-  const used = new Set(state.records.map(r => r.cat));
+  const used = new Set(state.records.filter(inRange).map(r => r.cat));
+  state.listCats.forEach(id => used.add(id));                  // 已选中的筛选保持可见
   const list = CATS.filter(c => used.has(c.id));
   $('listCats').classList.toggle('hidden', !list.length);
   if (!list.length){ $('listCats').innerHTML = ''; return; }
@@ -1106,6 +1107,7 @@ function listRowsHTML(rows){
 function listFiltered(){
   const q = state.query.trim().toLowerCase();
   let all = [...state.records].sort((a, b) => b.ts - a.ts);
+  all = all.filter(inRange);   // 跟随时间档位与翻页器（「全部」= 不限时间）
   if (state.listCats.length) all = all.filter(r => state.listCats.includes(r.cat));
   if (state.filterMeals.length) all = all.filter(r => state.filterMeals.includes(r.meal || '__none__'));
   if (q) all = all.filter(r => {
@@ -1119,9 +1121,12 @@ function listFiltered(){
 
 function openFullList(){
   const all = listFiltered();
+  const periodTxt = state.range === 'all' ? '全部时间' : rangeDates(state.range, state.anchor);
   $('fullCount').textContent = '共 ' + all.length + ' 条 · 合计 ¥' + fmt(sum(all)) +
+    ' · ' + periodTxt +
     (state.query.trim() || state.listCats.length || state.filterMeals.length ? ' · 已应用筛选' : '');
-  $('fullList').innerHTML = all.length ? listRowsHTML(all) : '<div class="empty">没有记录</div>';
+  $('fullList').innerHTML = all.length ? listRowsHTML(all)
+    : '<div class="empty">' + (state.range !== 'all' ? '这个时间段没有记录' : '没有记录') + '</div>';
   openSheet($('sheetFull'));
 }
 
@@ -1136,15 +1141,20 @@ function renderList(){
   $('ltReset').classList.toggle('hidden',
     !(state.listCats.length || state.filterMeals.length || state.query));
   $('ltV').textContent = '¥' + fmt(sum(all));
+  const periodTxt = state.range === 'all'
+    ? (all.length
+        ? md(new Date(Math.min(...dates)), false) + ' – ' + md(new Date(Math.max(...dates)), false)
+        : '全部时间')
+    : rangeDates(state.range, state.anchor);
   $('ltS').textContent = all.length
-    ? all.length + ' 笔 · ' + new Set(all.map(r => r.cat)).size + ' 个分类 · ' +
-      md(new Date(Math.min(...dates)), false) + ' – ' + md(new Date(Math.max(...dates)), false)
-    : '没有匹配的记录';
+    ? all.length + ' 笔 · ' + new Set(all.map(r => r.cat)).size + ' 个分类 · ' + periodTxt
+    : '0 笔 · ' + periodTxt;
 
   if (!all.length){
     $('recordList').innerHTML = '<div class="empty">' +
-      (state.query.trim() || state.listCats.length || state.filterMeals.length
-        ? '这个筛选条件下没有记录' : '还没有任何记录，去记第一笔吧') + '</div>';
+      (state.range !== 'all' ? '这个时间段还没有记录'
+        : state.query.trim() || state.listCats.length || state.filterMeals.length
+          ? '这个筛选条件下没有记录' : '还没有任何记录，去记第一笔吧') + '</div>';
     return;
   }
   const shown = all.slice(0, state.listLimit);
