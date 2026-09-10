@@ -1003,6 +1003,7 @@ function renderPager(){
 }
 
 function render(){
+  try{ localStorage.setItem('mm_lastSeen', String(Date.now())); }catch(e){}   // 存储金丝雀
   const list = state.records.filter(inRange);
   const total = sum(list);
 
@@ -1359,7 +1360,14 @@ async function showStorage(){
       const e = await navigator.storage.estimate();
       if (e && isFinite(e.usage)) quota = '；浏览器合计已用 ' + (e.usage/1048576).toFixed(1) + ' MB';
     }
-    el.textContent = '图片 ' + n + ' 张，共 ' + (bytes/1048576).toFixed(1) + ' MB' + quota;
+    let diag = '';
+    try{
+      let ptxt = '未知';
+      if (navigator.storage && navigator.storage.persisted) ptxt = (await navigator.storage.persisted()) ? '已授予' : '未授予';
+      const seen = localStorage.getItem('mm_lastSeen');
+      diag = '；持久存储: ' + ptxt + (seen ? '；上次使用: ' + md(new Date(Number(seen)), true) : '');
+    }catch(e2){}
+    el.textContent = '图片 ' + n + ' 张，共 ' + (bytes/1048576).toFixed(1) + ' MB' + quota + diag;
   }catch(e){ el.textContent = '无法查询'; }
 }
 function closeOne(el){
@@ -2133,6 +2141,16 @@ $('btnClear').addEventListener('click', async () => {
 });
 
 (async function start(){
+  // 存储加固：向系统申请「持久存储」。不申请的话 WebView 把本应用数据标成
+  // 「尽力保留」，存储吃紧时可能被系统自动清空 —— 重启后数据消失的最常见原因
+  let persisted = null;
+  try{
+    if (navigator.storage && navigator.storage.persist) persisted = await navigator.storage.persist();
+  }catch(e){}
+  // 存储金丝雀：读取上次启动写入的标记。这次标记还在、数据却是空的
+  // → 说明写入过但被系统清掉了（清理/省电软件），而不是应用没保存
+  let canaryPrev = null;
+  try{ canaryPrev = localStorage.getItem('mm_lastSeen'); }catch(e){}
   try{
     state.records = await DB.all();
     let cats = await DB.allCats();
@@ -2158,6 +2176,12 @@ $('btnClear').addEventListener('click', async () => {
   renderCatManage();
   renderMealManage();
   render();
+  state.persisted = persisted;
+  if (canaryPrev && !state.records.length && !state.budget && !state.startDate){
+    setTimeout(() => toast('⚠️ 上次的数据被清空了。请检查手机清理/省电软件，把本应用加入白名单'), 1500);
+  } else if (persisted === false){
+    setTimeout(() => toast('系统未授予持久存储，手机空间过满时数据可能被自动清理', 4000), 1500);
+  }
   if (new URLSearchParams(location.search).get('action') === 'add') setTimeout(openAdd, 320);
 })();
 

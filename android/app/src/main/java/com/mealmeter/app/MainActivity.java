@@ -29,6 +29,9 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         webView = bridge.getWebView();
+        // 显式确保 WebView 的本地存储（IndexedDB/localStorage）已启用且持久化
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setDatabaseEnabled(true);
         ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
             Insets bars = insets.getInsets(
                     WindowInsetsCompat.Type.statusBars()
