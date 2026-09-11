@@ -497,6 +497,15 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
     </div>
     <div class="note" style="padding-top:8px">图片是占空间的大头（已自动压缩，每张约 50–90 KB）。删掉带图的记录会同时删掉那张图，空间立刻回收。应用本身的体积是固定的，不会随使用变大。</div>
 
+    <div class="grp">关于</div>
+    <div class="set-list">
+      <div class="set-item" style="cursor:default">
+        <span><b>检查更新</b><small id="updateResult">当前 v1.1.0 · 点右侧对比 GitHub 最新版</small></span>
+        <span class="go" id="btnCheckUpdate" style="cursor:pointer">检查</span>
+      </div>
+    </div>
+    <div class="note" style="padding-top:8px">更新流程：点「下载新版本」→ 跳转浏览器自动下载 → 下拉通知栏点开安装包 → 安装（数据不会丢）。</div>
+
     <div class="grp">数据</div>
     <div class="set-list">
       <button class="set-item" id="btnExport">
@@ -1983,6 +1992,56 @@ $('startDateInput').addEventListener('change', async e => {
   render();
   toast(v ? '开始日期已设为 ' + v : '已清除开始日期');
 });
+
+/* ---------- 检查更新 ---------- */
+const APP_VER = {code: 9, name: '1.1.0'};
+function openExternal(url){
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function checkUpdate(){
+  const el = $('updateResult');
+  el.textContent = '检查中…';
+  let info = null;
+  try{
+    const r = await fetch('https://api.github.com/repos/m1Y4Z0N0/mealmeter/releases/latest',
+      {headers:{Accept:'application/vnd.github+json'}});
+    if (r.ok){
+      const d = await r.json();
+      const m = String(d.tag_name || '').match(/v?(\d+)\.(\d+)\.(\d+)/);
+      const apk = (d.assets || []).find(a => a.name.endsWith('.apk'));
+      if (m) info = {
+        code: +m[1] * 10000 + +m[2] * 100 + +m[3],
+        name: d.tag_name.replace(/^v/, ''),
+        url: apk ? apk.browser_download_url : d.html_url,
+        notes: (d.body || '').split('\n').filter(Boolean).slice(0, 2).join(' ')
+      };
+    }
+  }catch(e){}
+  if (!info){
+    try{
+      const r = await fetch('https://raw.githubusercontent.com/m1Y4Z0N0/mealmeter/main/www/version.json?ts=' + Date.now(),
+        {cache:'no-store'});
+      if (r.ok) info = await r.json();
+    }catch(e){}
+  }
+  if (!info || !info.code){ el.textContent = '检查失败，请稍后再试（需要能访问 GitHub 的网络）'; return; }
+  if (info.code > APP_VER.code){
+    el.innerHTML = '当前 v' + APP_VER.name + '，发现新版本 <b>v' + info.name + '</b><br>' +
+      '<button class="primary" id="btnDoUpdate" style="margin-top:10px;width:100%;padding:11px;border-radius:11px">下载新版本</button>' +
+      '<span style="font-size:11.5px;color:var(--faint);display:block;margin-top:6px">没反应？<a href="' + info.url +
+      '" target="_blank" rel="noopener" style="color:var(--acc-text)">手动打开下载链接</a>（下载完成点通知安装，数据不丢）</span>';
+    $('btnDoUpdate').addEventListener('click', () => {
+      toast('正在打开浏览器下载…');
+      setTimeout(() => openExternal(info.url), 200);
+      setTimeout(() => { if (document.visibilityState === 'visible') location.href = info.url; }, 1200);
+    });
+  } else {
+    el.textContent = '已是最新版本 v' + APP_VER.name;
+  }
+}
+$('btnCheckUpdate').addEventListener('click', checkUpdate);
 
 $('themeSeg').addEventListener('click', async e => {
   const b = e.target.closest('[data-th]'); if (!b) return;
