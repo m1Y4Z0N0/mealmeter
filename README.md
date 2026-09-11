@@ -3,7 +3,7 @@
 > 一款专注「伙食费结构」的本地伙食账本：看清楚钱都花在食堂、快餐、炸鸡还是零食饮料上。
 > 无账号、无后端、无追踪，所有数据只留在你自己的设备里。
 
-中文名 **大胃袋计算器**（桌面图标显示「大胃袋」），英文名 **MealMeter**。当前版本 **v1.0.0**。
+中文名 **大胃袋计算器**（桌面图标显示「大胃袋」），英文名 **MealMeter**。当前版本 **v1.0.1**。
 
 ---
 
@@ -36,7 +36,7 @@
 - **照片总览**集中浏览所有照片，支持批量多选删除——只把照片从记录里摘掉，记录本身永不误删
 
 **预算与数据**
-- 月度预算 → 「今天还能花多少」动态额度，超支变红
+- **每日预算** → 首页跟着视图换算：日视图看「今天还能花多少」，周/月/年看该期额度（每日额度 × 期天数），超支立刻变红
 - JSON 全量导出/导入（含分类与照片，换手机搬家用）
 - CSV 导出（带 BOM，Excel/WPS 不乱码）
 - 设置页可查看本机存储占用
@@ -59,7 +59,7 @@
 | Android | Capacitor 8.5 | WebView 壳 + 少量原生代码：把导出文件正确存入系统「下载」文件夹（WebView 不处理 `a[download]`） |
 | APK 构建 | GitHub Actions | ubuntu + JDK 21 + Gradle wrapper（8.14.3），push 即自动打包；私有签名密钥走仓库 Secrets，不进代码 |
 | 配色 | 图标同源 | 主色 `#3C6CE4` + 点缀 `#FCCC6C`，取自应用图标的像素聚类结果 |
-| 工具 | `tools/check.js`、`tools/make-icons.py` | 前者做静态自检（id 引用/未定义函数/data-* 配对/转义/语法），后者从任意图片重生成全套图标（Pillow） |
+| 工具 | `tools/check.js`、`tools/make-icons.py`、`tools/test-persist.js` | 第一个做静态自检（id 引用/未定义函数/data-* 配对/转义/语法）；第二个从任意图片重生成全套图标（Pillow）；第三个用 fake-indexeddb 做数据层回归（写入 → 重启 → 读回不丢） |
 
 ## 项目结构
 
@@ -77,11 +77,13 @@ mealmeter/
 │       │                       Capacitor 入口 + 导出桥（文件存入下载文件夹）
 │       ├── res/                图标、启动图、应用名（大胃袋）
 │       └── AndroidManifest.xml 仅声明 INTERNET（Capacitor 默认项，应用不联网）
-├── assets-src/                 图标源图（不入库）
+├── assets-src/                 图标源图（其中 mascot.png 是抠好底的主素材，可直接喂给 make-icons.py）
 ├── .github/workflows/android.yml   云端构建 APK 的工作流
 ├── tools/
 │   ├── check.js                静态自检脚本
-│   └── make-icons.py           图标生成脚本（输入任意图片，输出全套）
+│   ├── make-icons.py           图标生成脚本（输入任意图片，输出全套）
+│   ├── test-persist.js         数据层回归：写入 → 重启 → 读回（fake-indexeddb）
+│   └── test-order.js           内置项顺序校正推演
 ├── capacitor.config.json       appId: com.mealmeter.app, webDir: www
 ├── package.json                仅 3 个 Capacitor 依赖
 └── LICENSE                     MIT
@@ -99,6 +101,9 @@ npm run sync         # 把 www 同步进 Android 工程
 ```
 
 > 只想看界面：`npm run serve` 即可；Service Worker 在 `file://` 下不工作，别直接双击 index.html。
+>
+> 数据层回归测试需要 `fake-indexeddb`（只在本地临时装，不进项目依赖）：
+> `NODE_PATH=<你的 node_modules> node tools/test-persist.js`，会模拟「写入 → 断开 → 重开 → 读回」验证设置与记录不丢失。
 
 ## 构建 APK
 
@@ -127,7 +132,7 @@ npm run apk        # = cap sync android && gradlew assembleDebug
 2. 手机上点开 APK → 系统提示「禁止安装未知应用」→ 去设置允许对应来源（浏览器/文件管理器）→ 返回继续安装
 3. 装完桌面出现「大胃袋」图标
 
-> 版本号规则：`versionCode = 主版本×10000 + 次版本×100 + 修订号`（如 1.0.0 → 10000），升级版本需同步修改 `www/version.json`、`www/index.html` 的 `APP_VER` 和 `android/app/build.gradle` 三处。
+> 版本号规则：`versionCode = 主版本×10000 + 次版本×100 + 修订号`（如 1.0.1 → 10001），升级版本需同步修改 `www/version.json`、`www/index.html` 的 `APP_VER` 和 `android/app/build.gradle` 三处，并把 `www/sw.js` 的缓存名一并升号（否则 WebView 会读旧缓存）。
 
 ---
 

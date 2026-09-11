@@ -1,1 +1,1 @@
-{"code": 10000, "name": "1.0.0", "url": "https://github.com/m1Y4Z0N0/mealmeter/releases/download/v1.0.0/MealMeter-v1.0.0-debug.apk", "notes": "v1.0.0 新基线：弹窗逐层返回修复、照片总览批量管理、图片翻页查看、APK 内导出直进下载文件夹、图标瘦身"}
+{"code": 10001, "name": "1.0.1", "url": "https://github.com/m1Y4Z0N0/mealmeter/releases/download/v1.0.1/MealMeter-v1.0.1-debug.apk", "notes": "v1.0.1：① 修复设置项（预算/主题）重启后重置 —— 存储读取未解包导致；② 预算改为每日预算，日/周/月/年视图跟随换算，超支立刻变红，去掉开始使用日期；③ 修复餐次/分类/品牌顺序错乱（晚餐排到午餐前）；④ 图标整体缩小一档；⑤ 记一笔保存后回到主界面"}

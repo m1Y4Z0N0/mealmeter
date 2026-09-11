@@ -503,13 +503,9 @@ header.listmode .hd-total,header.listmode .hd-meta{display:none}
       </button>
     </div>
 
-    <div class="grp">月度预算</div>
-    <input id="budgetInput" class="fld" type="text" inputmode="decimal" placeholder="比如 1200，留空表示不设预算">
-    <div class="note" style="padding-top:8px">设了之后首页会算出「今天还能花多少」——用剩余预算除以剩余天数，随花随变。</div>
-
-    <div class="grp">开始使用日期</div>
-    <input id="startDateInput" class="fld" type="date">
-    <div class="note" style="padding-top:8px">不是从月初开始用的话，在这里填开始日期：统计的最早日期和本月预算都按它折算。例：9 月 10 日开始用、预算 1500，本月可用 = 1500 × 21/30 = 1050。留空 = 从第一条记录算起。</div>
+    <div class="grp">每日预算</div>
+    <input id="budgetInput" class="fld" type="text" inputmode="decimal" placeholder="比如 40，留空表示不设预算">
+    <div class="note" style="padding-top:8px">设了之后首页跟着视图走：日视图看「今天还能花多少」，周/月/年视图看该期消费对预算（每日预算 × 期天数），超支立刻变红。</div>
 
     <div class="grp">外观</div>
     <div class="seg" id="themeSeg">
@@ -817,7 +813,7 @@ const DB = (() => {
     put:    r  => tx('records', 'readwrite', s => s.put(r)),
     del:    id => tx('records', 'readwrite', s => s.delete(id)),
     clear:  () => tx('records', 'readwrite', s => s.clear()),
-    getMeta:k  => tx('meta', 'readonly',  s => s.get(k)),
+    getMeta: async k => { const r = await tx('meta', 'readonly', s => s.get(k)); return (r && typeof r === 'object' && 'v' in r) ? r.v : r; },   // 解包 {k,v}，直接返回存的值
     setMeta:(k, v) => tx('meta', 'readwrite', s => s.put({k, v})),
 
     allCats:  () => tx('cats', 'readonly',  s => s.getAll()),
@@ -842,7 +838,7 @@ const DB = (() => {
 
 const $ = id => document.getElementById(id);
 const state = {
-  records:[], range:'today', anchor:0, tab:'structure', listFrom:'', listTo:'', cat:'', amount:'', note:'', startDate:'',
+  records:[], range:'today', anchor:0, tab:'structure', listFrom:'', listTo:'', cat:'', amount:'', note:'',
   selDate:'', editing:null, budget:0, theme:'auto', query:'', listCats:[], listBrands:[], filterMeals:[], cdCat:null, cdOpen:false,
   listLimit:30,
   meal:null, brand:null,
@@ -910,14 +906,8 @@ function dT(s){
   if (p.length !== 3 || !p[0] || isNaN(p[1]) || isNaN(p[2])) return null;
   return new Date(p[0], p[1] - 1, p[2]).getTime();
 }
-function startDateT(){ return dT(state.startDate); }
 function daysInRange(){
   if (state.range === 'all'){
-    const s0 = startDateT();
-    if (s0){
-      const t0 = new Date(); t0.setHours(0,0,0,0);
-      return Math.max(1, Math.round((t0 - s0) / 864e5) + 1);
-    }
     if (!state.records.length) return 1;
     const d0 = new Date(Math.min(...state.records.map(r => r.ts)));
     d0.setHours(0,0,0,0);
@@ -941,11 +931,6 @@ function md(d, withWeek){
 function rangeDates(key, anchor){
   anchor = anchor || 0;
   if (key === 'all'){
-    const s0 = startDateT();
-    if (s0){
-      const t0 = new Date(); t0.setHours(0,0,0,0);
-      return md(new Date(s0)) + ' – ' + md(t0);
-    }
     if (!state.records.length) return '全部记录';
     const ts = state.records.map(r => r.ts);
     return md(new Date(Math.min(...ts))) + ' – ' + md(new Date(Math.max(...ts)));
@@ -1082,60 +1067,49 @@ function arcs(segs){
 
 function renderBudget(){
   const slot = $('budgetSlot');
-  const inMonthView = state.range === 'today';   // 预算卡只在「日」视图显示
-  if (!inMonthView){ slot.innerHTML = ''; return; }
+  if (state.range === 'all'){ slot.innerHTML = ''; return; }   // 「全部」没有自然周期，不显示预算卡
   if (!state.budget){
     slot.innerHTML =
       '<div class="card pad0"><button class="bud-cta" id="ctaBudget">' +
-        '<span><span class="t">设置月度预算</span><span class="s">算出每天还能花多少，超了立刻看见</span></span>' +
+        '<span><span class="t">设置每日预算</span><span class="s">算出每天还能花多少，超了立刻看见</span></span>' +
         '<span class="go">去设置</span></button></div>';
     $('ctaBudget').addEventListener('click', () => openSettings());
     return;
   }
-  const now = new Date();
-  const ms = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const me = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
-  const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const spent = sum(state.records.filter(r => r.ts >= ms && r.ts < me));
-  // 首月折算：月中才开始用的话，预算按「使用天数 ÷ 当月天数」比例折算
-  const s0 = startDateT();
-  let useDays = dim;
-  if (s0 != null){
-    const sd = new Date(s0);
-    if (sd.getFullYear() === now.getFullYear() && sd.getMonth() === now.getMonth()){
-      useDays = Math.max(1, dim - (sd.getDate() - 1));   // 从开始日（含）到月底
-    }
-  }
-  const eff = Math.round(state.budget * useDays / dim);  // 本月折算预算
-  const left = eff - spent;                              // 剩余可用
-  const daysLeft = dim - now.getDate() + 1;
-  const pct = Math.min(spent / eff, 1);
+  // 预算 = 每日预算 × 当前窗口天数（今天 1 天 / 本周 7 天 / 当月实际天数 / 当年天数），翻页看历史期同理
+  const p = periodOf(state.range, state.anchor);
+  const days = Math.max(1, Math.round((p[1] - p[0]) / 864e5));
+  const budget = state.budget * days;
+  const spent = sum(state.records.filter(r => r.ts >= p[0] && r.ts < p[1]));
+  const left = budget - spent;
   const over = left < 0;
+  const pct = Math.min(spent / budget, 1);
   const color = over ? 'var(--danger)' : (pct > .85 ? '#EF9F27' : '#1D9E75');
-  const perDay = Math.max(0, Math.floor(left / daysLeft));
-  const pro = useDays < dim;
-  const head = pro ? '按 ' + useDays + '/' + dim + ' 天折算 · ' : '';
-  // 今天还能花 = 今天的动态配额 − 今天已花（配额本身包含今天已花的部分，必须扣掉）
-  const td = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const todaySpent = sum(state.records.filter(r => r.ts >= td && r.ts < td + 864e5));
-  const todayLeft = perDay - todaySpent;
+  const LABEL = {today:'今天', week:'本周', month:'本月', year:'本年'}[state.range] || '本期';
+  const cur = state.anchor === 0;   // 当前期才说「今天/本周…」，翻页看历史期用日期
 
   let bigHtml, subHtml;
-  const tail = ' · 还剩 ' + daysLeft + ' 天 · 剩余可用 ¥' + fmt(left);
-  if (over){
-    bigHtml = '<div class="bud-big warn">已超支 ¥' + fmt(-left) + '<span class="u"></span></div>';
-    subHtml = head + '已花 ¥' + fmt(spent) + ' · 折算预算 ¥' + fmt(eff);
-  } else if (todayLeft >= 0){
-    bigHtml = '<div class="bud-big">¥' + fmt(todayLeft) + '<span class="u"> / 今天还能花</span></div>';
-    subHtml = head + '已花 ¥' + fmt(todaySpent) + tail;
+  if (cur){
+    if (over){
+      bigHtml = '<div class="bud-big warn">已超支 ¥' + fmt(-left) + '<span class="u"></span></div>';
+      subHtml = LABEL + '已花 ¥' + fmt(spent) + ' · 预算 ¥' + fmt(budget);
+    } else if (state.range === 'today'){
+      bigHtml = '<div class="bud-big">¥' + fmt(left) + '<span class="u"> / 今天还能花</span></div>';
+      subHtml = '已花 ¥' + fmt(spent) + ' · 每日预算 ¥' + fmt(state.budget);
+    } else {
+      bigHtml = '<div class="bud-big">¥' + fmt(left) + '<span class="u"> / ' + LABEL + '还能花</span></div>';
+      subHtml = LABEL + '已花 ¥' + fmt(spent) + ' · 预算 ¥' + fmt(budget) + '（每日 ¥' + fmt(state.budget) + ' × ' + days + ' 天）';
+    }
   } else {
-    bigHtml = '<div class="bud-big warn">¥' + fmt(-todayLeft) + '<span class="u"> / 今天已超</span></div>';
-    subHtml = head + '已花 ¥' + fmt(todaySpent) + tail;
+    bigHtml = over
+      ? '<div class="bud-big warn">已超支 ¥' + fmt(-left) + '<span class="u"></span></div>'
+      : '<div class="bud-big">¥' + fmt(left) + '<span class="u"> / 剩余</span></div>';
+    subHtml = rangeDates(state.range, state.anchor) + ' · 已花 ¥' + fmt(spent) + ' · 预算 ¥' + fmt(budget);
   }
 
   slot.innerHTML =
     '<div class="card pad0">' +
-      '<div class="bud-top"><span class="bud-k">本月预算</span>' +
+      '<div class="bud-top"><span class="bud-k">每日预算</span>' +
         '<span class="bud-v">¥' + fmt(state.budget) + '</span></div>' +
       bigHtml +
       '<div class="bud-sub">' + subHtml + '</div>' +
@@ -1528,7 +1502,6 @@ function selectDate(k){
 }
 function openSettings(){
   $('budgetInput').value = state.budget ? fmt(state.budget) : '';
-  $('startDateInput').value = state.startDate || '';
   applyTheme();
   showStorage();
   openSheet($('sheetSet'));
@@ -1698,9 +1671,22 @@ function renderCatManage(){
 }
 async function reloadCats(){
   CATS = await DB.allCats();
-  if (CATS.some(c => typeof c.order !== 'number')){          // 旧数据迁移：补 order 字段
-    await Promise.all(CATS.map((c, i) => (c.order = i, DB.putCat(c))));
+  let dirty = false;
+  if (CATS.some(c => typeof c.order !== 'number')) dirty = true;
+  // 顺序校正：内置分类按 SEED 语义顺序纠正（同 reloadMeals，getAll 按 id 排序会把顺序带偏）
+  const BUILTIN_CATS = SEED_CATS.map(c => c.id);
+  const builtinCats = BUILTIN_CATS.map(id => CATS.find(c => c.id === id));
+  if (builtinCats.every(Boolean)){
+    const seq = builtinCats.map(c => c.order);
+    const sortedSeq = [...seq].sort((a, b) => a - b);
+    if (JSON.stringify(seq) !== JSON.stringify(sortedSeq) || new Set(seq).size !== seq.length){
+      const custom = CATS.filter(c => !BUILTIN_CATS.includes(c.id)).sort((a, b) => (a.order || 0) - (b.order || 0));
+      CATS = [...builtinCats, ...custom];
+      CATS.forEach((c, i) => c.order = i);
+      dirty = true;
+    }
   }
+  if (dirty) await Promise.all(CATS.map(c => DB.putCat(c)));
   CATS.sort((a, b) => (a.order || 0) - (b.order || 0));
   CAT_MAP = Object.fromEntries(CATS.map(c => [c.id, c]));
   if (state.listCats.length) state.listCats = state.listCats.filter(id => CAT_MAP[id]);
@@ -1821,9 +1807,25 @@ enableDragSort($('mealManageList'), persistMealOrder);
 enableDragSort($('brandManageList'), persistBrandOrder);
 async function reloadMeals(){
   MEALS = await DB.allMeals();
-  if (MEALS.some(m => typeof m.order !== 'number')){
-    await Promise.all(MEALS.map((m, i) => (m.order = i, DB.putMeal(m))));
+  let dirty = false;
+  if (MEALS.some(m => typeof m.order !== 'number')) dirty = true;
+  // 顺序校正：IndexedDB 的 getAll 按主键 id 排序返回，m_dinner < m_lunch，
+  // 早期版本把这套错误顺序当 order 补写进了库。内置四项按语义顺序纠正，
+  // 用户自建项排在最后并保持彼此的相对顺序；用户手动拖过序的（order 已互不相同）
+  // 也只在检测到内置项顺序错乱时才动，避免覆盖用户意图。
+  const BUILTIN = SEED_MEALS.map(m => m.id);
+  const builtinRecs = BUILTIN.map(id => MEALS.find(m => m.id === id));
+  if (builtinRecs.every(Boolean)){
+    const seq = builtinRecs.map(m => m.order);
+    const sortedSeq = [...seq].sort((a, b) => a - b);
+    if (JSON.stringify(seq) !== JSON.stringify(sortedSeq) || new Set(seq).size !== seq.length){
+      const custom = MEALS.filter(m => !BUILTIN.includes(m.id)).sort((a, b) => (a.order || 0) - (b.order || 0));
+      MEALS = [...builtinRecs, ...custom];
+      MEALS.forEach((m, i) => m.order = i);
+      dirty = true;
+    }
   }
+  if (dirty) await Promise.all(MEALS.map(m => DB.putMeal(m)));
   MEALS.sort((a, b) => (a.order || 0) - (b.order || 0));
   MEAL_MAP = Object.fromEntries(MEALS.map(m => [m.id, m]));
   if (state.meal && !MEAL_MAP[state.meal]) state.meal = null;
@@ -1861,9 +1863,22 @@ function renderBrandManage(){
 }
 async function reloadBrands(){
   BRANDS = await DB.allBrands();
-  if (BRANDS.some(b => typeof b.order !== 'number')){
-    await Promise.all(BRANDS.map((b, i) => (b.order = i, DB.putBrand(b))));
+  let dirty = false;
+  if (BRANDS.some(b => typeof b.order !== 'number')) dirty = true;
+  // 顺序校正：同 reloadCats
+  const BUILTIN_BRANDS = SEED_BRANDS.map(b => b.id);
+  const builtinBrands = BUILTIN_BRANDS.map(id => BRANDS.find(b => b.id === id));
+  if (builtinBrands.every(Boolean)){
+    const seq = builtinBrands.map(b => b.order);
+    const sortedSeq = [...seq].sort((a, b) => a - b);
+    if (JSON.stringify(seq) !== JSON.stringify(sortedSeq) || new Set(seq).size !== seq.length){
+      const custom = BRANDS.filter(b => !BUILTIN_BRANDS.includes(b.id)).sort((a, b) => (a.order || 0) - (b.order || 0));
+      BRANDS = [...builtinBrands, ...custom];
+      BRANDS.forEach((b, i) => b.order = i);
+      dirty = true;
+    }
   }
+  if (dirty) await Promise.all(BRANDS.map(b => DB.putBrand(b)));
   BRANDS.sort((a, b) => (a.order || 0) - (b.order || 0));
   BRAND_MAP = Object.fromEntries(BRANDS.map(b => [b.id, b]));
   if (state.brand && !BRAND_MAP[state.brand]) state.brand = null;
@@ -2298,7 +2313,7 @@ $('btnSave').addEventListener('click', async () => {
 
   state.editing = null;
   await refresh();
-  closeSheets();
+  closeSheets();                          // 记完就收起，回到主界面；想再记直接点右下角「记一笔」
 
   const a = new Date(ts); a.setHours(0,0,0,0);
   const b = new Date();   b.setHours(0,0,0,0);
@@ -2360,19 +2375,11 @@ $('budgetInput').addEventListener('change', async e => {
   await DB.setMeta('budget', c);
   e.target.value = c ? fmt(c) : '';
   render();
-  toast(c ? '月预算已设为 ¥' + fmt(c) : '已取消预算');
-});
-
-$('startDateInput').addEventListener('change', async e => {
-  const v = e.target.value || '';
-  state.startDate = v;
-  await DB.setMeta('startDate', v);
-  render();
-  toast(v ? '开始日期已设为 ' + v : '已清除开始日期');
+  toast(c ? '每日预算已设为 ¥' + fmt(c) : '已取消预算');
 });
 
 /* ---------- 检查更新 ---------- */
-const APP_VER = {code: 10000, name: "1.0.0"};
+const APP_VER = {code: 10001, name: "1.0.1"};
 function openExternal(url){
   const a = document.createElement('a');
   a.href = url; a.target = '_blank'; a.rel = 'noopener';
@@ -2621,7 +2628,7 @@ $('btnExport').addEventListener('click', async () => {
     }catch(e){}
   }
   const data = {v:5, app:'mealmeter', exportedAt:new Date().toISOString(),
-    budget:state.budget, startDate:state.startDate || '', cats:CATS, meals:MEALS, brands:BRANDS,
+    budget:state.budget, cats:CATS, meals:MEALS, brands:BRANDS,
     records:[...state.records].sort((a, b) => a.ts - b.ts), photos};
   download(new Blob([JSON.stringify(data)], {type:'application/json'}), '大胃袋备份-' + stamp() + '.json');
   toast('已导出 ' + state.records.length + ' 条' + (ids.length ? ' · ' + ids.length + ' 张图' : ''));
@@ -2702,7 +2709,6 @@ $('fileImport').addEventListener('change', async e => {
       n++;
     }
     if (!state.budget && data.budget){ state.budget = Math.round(Number(data.budget)) || 0; await DB.setMeta('budget', state.budget); }
-    if (typeof data.startDate === 'string' && !state.startDate){ state.startDate = data.startDate; await DB.setMeta('startDate', state.startDate); }
     await refresh();
     toast('导入 ' + n + ' 条');
   }catch(err){ toast('文件格式不对'); }
@@ -2749,7 +2755,6 @@ $('btnClear').addEventListener('click', async () => {
     }
     await reloadBrands();
     state.budget = Math.round(Number(await DB.getMeta('budget'))) || 0;
-    state.startDate = (await DB.getMeta('startDate')) || '';
     state.theme = (await DB.getMeta('theme')) || 'auto';
     await syncPhotos();
   }catch(e){
@@ -2762,7 +2767,7 @@ $('btnClear').addEventListener('click', async () => {
   renderMealManage();
   render();
   state.persisted = persisted;
-  if (canaryPrev && !state.records.length && !state.budget && !state.startDate){
+  if (canaryPrev && !state.records.length && !state.budget){
     setTimeout(() => toast('⚠️ 上次的数据被清空了。请检查手机清理/省电软件，把本应用加入白名单'), 1500);
   } else if (persisted === false){
     setTimeout(() => toast('系统未授予持久存储，手机空间过满时数据可能被自动清理', 4000), 1500);
