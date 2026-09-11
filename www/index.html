@@ -241,6 +241,26 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
 
 .thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:0 0 auto;background:var(--soft);display:block}
 .thumb:active{opacity:.8}
+.thumbbox{position:relative;display:inline-flex;flex:0 0 auto}
+.pn{position:absolute;right:-5px;bottom:-5px;background:var(--ink);color:var(--onink);font-size:10px;font-style:normal;font-weight:600;border-radius:9px;padding:1px 5px;line-height:1.4}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block;background:var(--soft);cursor:pointer}
+.gallery .empty{grid-column:1/-1}
+.gitem{position:relative}
+.gitem .gcheck{position:absolute;top:7px;right:7px;width:21px;height:21px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.9);background:rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;font-style:normal}
+.gitem.sel .gcheck{background:var(--acc);color:#fff}
+.gitem.sel img{outline:2px solid var(--acc);outline-offset:-2px}
+.gal-bar{display:flex;margin-top:12px}
+.gal-bar button{flex:1;padding:12px;border-radius:12px;font-weight:600}
+.gal-bar #btnGalDel{background:var(--danger);color:#fff}
+.gal-bar #btnGalDel:disabled{opacity:.45}
+.brand-entry{display:flex;width:100%;margin-top:10px;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+  color:var(--dim);font:inherit;font-size:14px;cursor:pointer}
+.brand-entry .go{font-size:13px;color:var(--faint);flex:0 0 auto}
+.brand-entry.picked{border-color:var(--acc);color:var(--acc-text);font-weight:600}
 
 .emoji-sec{font-size:12px;color:var(--faint);margin:16px 0 7px}
 .emoji-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
@@ -278,12 +298,11 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
 .lb button{position:absolute;top:calc(16px + var(--sat,0px));right:16px;width:38px;height:38px;
   border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:19px;line-height:1;
   display:flex;align-items:center;justify-content:center;padding:0}
+.lb button.nav{top:50%;transform:translateY(-50%);font-size:26px}
+.lb #lbPrev{right:auto;left:10px}
+.lb #lbNext{right:10px}
+.lb .idx{position:absolute;top:calc(26px + var(--sat,0px));left:16px;color:#fff;font-size:13px;opacity:.85}
 /* 明细页：顶部合计 */
-.lt{padding:16px 18px 15px}
-.lt-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.lt-k{font-size:12.5px;color:var(--dim)}
-.lt-v{font-size:29px;font-weight:500;letter-spacing:-.6px;margin-top:3px;font-variant-numeric:tabular-nums}
-.lt-s{font-size:12px;color:var(--faint);margin-top:4px}
 .lt-reset{flex:0 0 auto;padding:9px 15px;border-radius:11px;background:var(--soft);
   font-size:13px;color:var(--dim);transition:.15s}
 .lt-reset:active{background:var(--track);color:var(--text)}
@@ -292,6 +311,10 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
 .frow{display:flex;align-items:flex-start;gap:9px;margin-top:10px}
 .flab{font-size:12px;color:var(--faint);flex:0 0 auto;padding:7px 0;width:30px;text-align:right}
 .frow .chips{flex:1;margin-top:0}
+.rangepick{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.datepick{flex:1;min-width:0;padding:8px 10px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;-webkit-appearance:none;appearance:none}
+.rdash{color:var(--faint);flex:0 0 auto}
+header.listmode .hd-total,header.listmode .hd-meta{display:none}
 
 /* 明细页：分类筛选 */
 .chips.fw{flex-wrap:wrap;overflow:visible;row-gap:7px}
@@ -348,9 +371,8 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
       </svg>
     </button>
   </div>
-  <div class="wrap">
+  <div class="wrap" id="chipsWrap">
     <div class="chips" id="chips">
-      <button class="chip" data-r="list">明细</button>
       <button class="chip on" data-r="today">日</button>
       <button class="chip" data-r="week">周</button>
       <button class="chip" data-r="month">月</button>
@@ -388,18 +410,15 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
   </section>
 
   <section id="view-list" class="hidden">
-    <div class="card pad0 lt">
-      <div class="lt-row">
-        <div style="min-width:0">
-          <div class="lt-k" id="ltK">全部记录</div>
-          <div class="lt-v" id="ltV">¥0</div>
-          <div class="lt-s" id="ltS"></div>
-        </div>
-        <button class="lt-reset hidden" id="ltReset">重置</button>
+    <div class="frow" style="margin-top:2px"><span class="flab">时间</span>
+      <div class="rangepick">
+        <input type="date" class="datepick" id="listFrom" aria-label="开始日期">
+        <span class="rdash">–</span>
+        <input type="date" class="datepick" id="listTo" aria-label="结束日期">
       </div>
     </div>
-    <div class="frow"><span class="flab">餐次</span><div class="chips" id="filterMeals"></div></div>
-    <div class="frow"><span class="flab">分类</span><div class="chips fw" id="listCats"></div></div>
+    <div class="frow"><span class="flab">标签</span><div class="chips fw" id="tagArea" style="margin-top:0"></div></div>
+    <div style="display:flex;justify-content:flex-end"><button class="lt-reset hidden" id="ltReset">重置</button></div>
     <div class="searchrow">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>
@@ -446,19 +465,28 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
         <button data-close>取消</button>
       </div>
     </div>
-    <div class="cats" id="catPicker"></div>
+    <div class="fld-cap">分类</div>
+    <button class="brand-entry" id="catEntry" type="button">
+      <span id="catEntryText">选择分类</span><span class="go">选择 ›</span>
+    </button>
     <div class="amount-row">
       <span class="cny-lg">¥</span>
       <input id="amountInput" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off">
     </div>
     <div class="quick" id="quickAmts"></div>
-    <input id="noteInput" class="fld" type="text" placeholder="备注（选填）" autocomplete="off" maxlength="40">
-    <div class="prow" id="photoRow"></div>
     <div class="fld-cap">哪一餐</div>
-    <div class="chips" id="mealChips" style="margin-top:8px"></div>
+    <button class="brand-entry" id="mealEntry" type="button">
+      <span id="mealEntryText">请选择</span><span class="go">选择 ›</span>
+    </button>
     <div class="fld-cap">哪一天（往左滑可以选更早）</div>
     <div class="daterow" id="dateRow"></div>
     <div class="note hidden" id="oldDateNote" style="padding:10px 2px 0"></div>
+    <div class="fld-cap">品牌（选填）</div>
+    <button class="brand-entry" id="brandEntry" type="button">
+      <span id="brandEntryText">未选择</span><span class="go">选择 ›</span>
+    </button>
+    <input id="noteInput" class="fld" type="text" placeholder="备注（选填）" autocomplete="off" maxlength="40">
+    <div class="prow" id="photoRow"></div>
     <button class="primary" id="btnSave" disabled>保存</button>
   </div>
 </div>
@@ -495,8 +523,11 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
       <div class="set-item" style="cursor:default">
         <span><b>本机占用</b><small id="storageInfo">计算中…</small></span>
       </div>
+      <button class="set-item" id="btnGallery">
+        <span><b>照片总览</b><small id="galleryInfo">查看本机的全部记录照片</small></span><span class="go">查看</span>
+      </button>
     </div>
-    <div class="note" style="padding-top:8px">图片是占空间的大头（已自动压缩，每张约 50–90 KB）。删掉带图的记录会同时删掉那张图，空间立刻回收。应用本身的体积是固定的，不会随使用变大。</div>
+    <div class="note" style="padding-top:8px">照片按原图存储（不压缩），是占空间的大头，一张可能好几 MB，导出备份也会随之变大。每笔最多 3 张；删掉带图的记录会同时删掉那些图，空间立刻回收。</div>
 
     <div class="grp">关于</div>
     <div class="set-list">
@@ -530,17 +561,39 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
 <div class="sheet" id="sheetCats">
   <div class="grab"></div>
   <div class="sheet-in">
-    <div class="sheet-hd"><h2>分类管理</h2><button data-closeone>返回</button></div>
+    <div class="sheet-hd"><h2>分类管理</h2><button id="btnCatsBack">返回</button></div>
 
-    <div class="grp">伙食分类</div>
-    <div class="set-list" id="catManageList"></div>
-    <button class="secondary" id="btnNewCat">＋ 新建分类</button>
-    <div class="note">删除分类不会连带删掉记录 —— 用到它的记录会自动转到你保留的另一个分类。</div>
+    <div id="manageMenu">
+      <button class="brand-entry" data-mgrp="cat"><span id="mgCatText">伙食分类</span><span class="go">管理 ›</span></button>
+      <button class="brand-entry" data-mgrp="meal"><span id="mgMealText">餐次</span><span class="go">管理 ›</span></button>
+      <button class="brand-entry" data-mgrp="brand"><span id="mgBrandText">品牌</span><span class="go">管理 ›</span></button>
+      <div class="note" style="margin-top:10px">点进去管理对应的一组：改名、换图标颜色、删除、长按拖动排序。</div>
+    </div>
 
-    <div class="grp">餐次</div>
-    <div class="set-list" id="mealManageList"></div>
-    <button class="secondary" id="btnNewMeal">＋ 新建餐次</button>
-    <div class="note">餐次是「早餐 / 午餐 / 晚餐 / 夜宵」这类维度，和上面的伙食分类相互独立。删掉餐次只会把记录上的这一项清空，不影响记录本身。</div>
+    <div id="manageBody" class="hidden">
+      <button class="lt-reset" id="btnManageBack">‹ 返回</button>
+
+      <div class="mgrp" data-msec="cat">
+        <div class="grp">伙食分类</div>
+        <div class="set-list" id="catManageList"></div>
+        <button class="secondary" id="btnNewCat">＋ 新建分类</button>
+        <div class="note">删除分类不会连带删掉记录 —— 用到它的记录会自动转到你保留的另一个分类。</div>
+      </div>
+
+      <div class="mgrp" data-msec="meal">
+        <div class="grp">餐次</div>
+        <div class="set-list" id="mealManageList"></div>
+        <button class="secondary" id="btnNewMeal">＋ 新建餐次</button>
+        <div class="note">餐次是「早餐 / 午餐 / 晚餐 / 夜宵」这类维度，和伙食分类相互独立。删掉餐次只会把记录上的这一项清空，不影响记录本身。</div>
+      </div>
+
+      <div class="mgrp" data-msec="brand">
+        <div class="grp">品牌</div>
+        <div class="set-list" id="brandManageList"></div>
+        <button class="secondary" id="btnNewBrand">＋ 新建品牌</button>
+        <div class="note">品牌是「麦当劳 / 肯德基」这类连锁标记，记一笔时选填。删掉品牌只清掉记录上的品牌标记，记录本身不受影响。</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -596,6 +649,59 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
   </div>
 </div>
 
+<div class="sheet" id="sheetFilter">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>选择标签</h2><button data-close>完成</button></div>
+    <div class="note" style="padding-top:0">点选下面的标签，明细立即按所选筛选；可同时选多个。</div>
+    <div class="fld-cap">分类</div>
+    <div class="chips fw" id="fCats" style="margin-top:8px"></div>
+    <div class="fld-cap">餐次</div>
+    <div class="chips fw" id="fMeals" style="margin-top:8px"></div>
+    <div class="fld-cap">品牌</div>
+    <div class="chips fw" id="fBrands" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetGallery">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>照片总览</h2>
+      <div class="acts"><button id="btnGalSel">批量管理</button><button data-closeone>关闭</button></div>
+    </div>
+    <div class="lt-s" id="galleryCount" style="margin:-2px 0 8px"></div>
+    <div class="gallery" id="galleryGrid"></div>
+    <div class="gal-bar hidden" id="galBar"><button id="btnGalDel" disabled>删除所选（0）</button></div>
+    <div class="note hidden" id="galHint" style="padding:8px 2px 0">点选要删除的照片。删除只是把照片从记录里拿掉，记录本身不会动。</div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetBrandPick">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>选择品牌</h2><button data-closeone>完成</button></div>
+    <div class="note" style="padding-top:0">品牌是选填的；再点一次已选中的品牌可取消。没有就点「＋ 新建」。</div>
+    <div class="chips fw" id="brandPickChips" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetCatPick">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>选择分类</h2><button data-closeone>完成</button></div>
+    <div class="cats" id="catPickGrid" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetMealPick">
+  <div class="grab"></div>
+  <div class="sheet-in">
+    <div class="sheet-hd"><h2>哪一餐</h2><button data-closeone>完成</button></div>
+    <div class="note" style="padding-top:0">这顿是早餐、午餐、晚餐还是夜宵？不够用可以自己新建。</div>
+    <div class="chips fw" id="mealPickChips" style="margin-top:8px"></div>
+  </div>
+</div>
+
 <div class="sheet" id="sheetPick">
   <div class="grab"></div>
   <div class="sheet-in">
@@ -613,10 +719,10 @@ html[data-theme="dark"] .toast{background:rgba(238,241,245,.95);color:#14171b}
   </div>
 </div>
 
-<div class="lb" id="lightbox"><button id="lbClose">&times;</button><img id="lbImg" alt=""></div>
+<div class="lb" id="lightbox"><button id="lbClose">&times;</button><button id="lbPrev" class="nav">&#8249;</button><button id="lbNext" class="nav">&#8250;</button><span id="lbIdx" class="idx"></span><img id="lbImg" alt=""></div>
 
 <input type="file" id="fileImport" accept=".json,application/json" class="hidden">
-<input type="file" id="filePhoto" accept="image/*" class="hidden">
+<input type="file" id="filePhoto" accept="image/*" multiple class="hidden">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -648,21 +754,38 @@ const SEED_MEALS = [
   {id:'m_dinner',    name:'晚餐'},
   {id:'m_night',     name:'夜宵'}
 ];
+const SEED_BRANDS = [
+  {id:'b_mcd',      name:'麦当劳'},
+  {id:'b_kfc',      name:'肯德基'},
+  {id:'b_pizza',    name:'必胜客'},
+  {id:'b_bk',       name:'汉堡王'},
+  {id:'b_tastien',  name:'塔斯汀'},
+  {id:'b_sbux',     name:'星巴克'},
+  {id:'b_luckin',   name:'瑞幸咖啡'},
+  {id:'b_mixue',    name:'蜜雪冰城'},
+  {id:'b_haidilao', name:'海底捞'},
+  {id:'b_wallace',  name:'华莱士'}
+];
 const UNKNOWN_CAT = {id:'__gone', name:'已删除的分类', color:'#888780', icon:'\u2753', heavy:false};
 let CATS = [];
 let CAT_MAP = {};
 let MEALS = [];
 let MEAL_MAP = {};
+let BRANDS = [];
+let BRAND_MAP = {};
 const catOf = id => CAT_MAP[id] || UNKNOWN_CAT;
 const mealOf = id => MEAL_MAP[id] || null;
+const brandOf = id => (id && BRAND_MAP[id]) || null;
 const QUICK = [5, 10, 15, 20, 30, 50];
+const MAX_PHOTOS = 3;                       // 每笔最多几张照片（原图不压缩，3 张够拍食物+小票又不撑爆存储）
+const recPhotos = r => Array.isArray(r.photos) ? r.photos.filter(Boolean) : (r.photo ? [r.photo] : []);
 
 const DB = (() => {
   let p = null;
   function open(){
     if (p) return p;
     p = new Promise((res, rej) => {
-      const r = indexedDB.open('mealcost', 4);
+      const r = indexedDB.open('mealcost', 5);
       r.onupgradeneeded = () => {
         const db = r.result;
         if (!db.objectStoreNames.contains('records')){
@@ -673,6 +796,7 @@ const DB = (() => {
         if (!db.objectStoreNames.contains('cats')) db.createObjectStore('cats', {keyPath:'id'});
         if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos', {keyPath:'id'});
         if (!db.objectStoreNames.contains('meals')) db.createObjectStore('meals', {keyPath:'id'});
+        if (!db.objectStoreNames.contains('brands')) db.createObjectStore('brands', {keyPath:'id'});
       };
       r.onsuccess = () => res(r.result);
       r.onerror = () => rej(r.error);
@@ -706,6 +830,10 @@ const DB = (() => {
     putMeal:  m  => tx('meals', 'readwrite', s => s.put(m)),
     delMeal:  id => tx('meals', 'readwrite', s => s.delete(id)),
 
+    allBrands:() => tx('brands', 'readonly',  s => s.getAll()),
+    putBrand: b  => tx('brands', 'readwrite', s => s.put(b)),
+    delBrand: id => tx('brands', 'readwrite', s => s.delete(id)),
+
     getPhoto: id => tx('photos', 'readonly',  s => s.get(id)),
     putPhoto: p  => tx('photos', 'readwrite', s => s.put(p)),
     delPhoto: id => tx('photos', 'readwrite', s => s.delete(id))
@@ -714,10 +842,11 @@ const DB = (() => {
 
 const $ = id => document.getElementById(id);
 const state = {
-  records:[], range:'today', anchor:0, tab:'structure', cat:'', amount:'', note:'', startDate:'',
-  selDate:'', editing:null, budget:0, theme:'auto', query:'', listCats:[], filterMeals:[], cdCat:null, cdOpen:false,
+  records:[], range:'today', anchor:0, tab:'structure', listFrom:'', listTo:'', cat:'', amount:'', note:'', startDate:'',
+  selDate:'', editing:null, budget:0, theme:'auto', query:'', listCats:[], listBrands:[], filterMeals:[], cdCat:null, cdOpen:false,
   listLimit:30,
-  photoId:null, photoBlob:null, photoPreview:null, meal:null,
+  meal:null, brand:null,
+  keepPhotos:[], newPhotos:[],
   catEditing:null, catIcon:'', catColor:PALETTE[0], catHeavy:false, catFromPicker:false, catMode:'cat'
 };
 
@@ -758,12 +887,30 @@ function inRange(r){
   const p = periodOf(state.range, state.anchor);
   return r.ts >= p[0] && r.ts < p[1];
 }
-function startDateT(){
-  if (!state.startDate) return null;
-  const p = state.startDate.split('-').map(Number);
+/* 明细页自定义时间范围（listFrom/listTo，空=不限）：与结构页的 range/anchor 互不影响 */
+function listTimeAll(){
+  const lo = dT(state.listFrom), hi = dT(state.listTo);
+  if (lo === null && hi === null) return state.records;
+  const a = lo === null ? -Infinity : lo;
+  const b = hi === null ? Infinity : hi + 864e5;   // 含结束日当天
+  return state.records.filter(r => r.ts >= a && r.ts < b);
+}
+function listRangeText(){
+  const a = state.listFrom ? md(new Date(dT(state.listFrom))) : '';
+  const b = state.listTo ? md(new Date(dT(state.listTo))) : '';
+  if (a && b) return a + ' – ' + b;
+  if (a) return a + ' 起';
+  if (b) return '至 ' + b;
+  return '全部时间';
+}
+/* 'YYYY-MM-DD' → 当地当天 00:00 的时间戳；空或格式不对返回 null */
+function dT(s){
+  if (!s) return null;
+  const p = s.split('-').map(Number);
   if (p.length !== 3 || !p[0] || isNaN(p[1]) || isNaN(p[2])) return null;
   return new Date(p[0], p[1] - 1, p[2]).getTime();
 }
+function startDateT(){ return dT(state.startDate); }
 function daysInRange(){
   if (state.range === 'all'){
     const s0 = startDateT();
@@ -1017,12 +1164,16 @@ function render(){
   const list = state.records.filter(inRange);
   const total = sum(list);
 
-  $('hdLabel').innerHTML = '<span class="dt">' + md(new Date(), true) + '</span> · 伙食费';
-  $('hdTotal').textContent = fmt(total);
-  const days = daysInRange();
-  $('hdMeta').textContent = list.length
-    ? days + ' 天 · 日均 ¥' + fmt(Math.round(total / days)) + ' · ' + list.length + ' 笔'
-    : (state.range === 'all' ? '还没有记录' : '这个区间还没有记录');
+  if (state.tab === 'list'){
+    $('hdLabel').textContent = '明细';   // 明细页头部只留标题，不放日期金额
+  } else {
+    $('hdLabel').innerHTML = '<span class="dt">' + md(new Date(), true) + '</span> · 伙食费';
+    $('hdTotal').textContent = fmt(total);
+    const days = daysInRange();
+    $('hdMeta').textContent = list.length
+      ? days + ' 天 · 日均 ¥' + fmt(Math.round(total / days)) + ' · ' + list.length + ' 笔'
+      : (state.range === 'all' ? '还没有记录' : '这个区间还没有记录');
+  }
   renderPager();
 
   renderBudget();
@@ -1078,13 +1229,14 @@ function render(){
         (amt ? 'var(--acc)' : 'var(--track)') + '"></i></span></div></div></div>';
   }).join('') : '<div class="empty">还没有记录</div>';
 
-  renderListCats();
-  renderFilterMeals();
-  renderList();
+  afterTagChange();
 
   const used = new Set(state.records.map(r => r.cat));
   $('statNote').textContent = '本机共 ' + state.records.length + ' 条记录，用过的分类 ' + used.size +
     ' 个，累计 ¥' + fmt(sum(state.records)) + '。';
+  const photoCount = state.records.reduce((n, r) => n + recPhotos(r).length, 0);
+  $('galleryInfo').textContent = photoCount
+    ? '本机共 ' + photoCount + ' 张 · 点开浏览大图' : '还没有照片';
 }
 
 function chipRow(el, items, selected, dataAttr, clearAttr, withDot){
@@ -1097,27 +1249,57 @@ function chipRow(el, items, selected, dataAttr, clearAttr, withDot){
       (withDot ? '<span class="d" style="background:' + c.color + '"></span>' : '') +
       esc(c.name) + '</button>').join('');
 }
+/* 三个标签组渲染进「选择标签」选单（sheetFilter） */
 function renderListCats(){
   state.listCats = state.listCats.filter(id => CAT_MAP[id]);   // 分类被删掉的就从筛选里移除
-  const used = new Set(state.records.map(r => r.cat));
-  state.listCats.forEach(id => used.add(id));                  // 已选中的筛选保持可见
-  const list = CATS.filter(c => used.has(c.id));
-  $('listCats').classList.toggle('hidden', !list.length);
-  if (!list.length){ $('listCats').innerHTML = ''; return; }
-  chipRow($('listCats'), list, state.listCats, 'data-lc', 'data-lc-clear', true);
+  chipRow($('fCats'), CATS, state.listCats, 'data-lc', 'data-lc-clear', true);
 }
 function renderFilterMeals(){
   state.filterMeals = state.filterMeals.filter(id => MEAL_MAP[id] || id === '__none__');
   const noMeal = state.records.filter(r => !r.meal || !MEAL_MAP[r.meal]).length;
   const items = MEALS.map(m => ({id: m.id, name: m.name}))
     .concat(noMeal ? [{id:'__none__', name:'未标注'}] : []);
-  chipRow($('filterMeals'), items, state.filterMeals, 'data-fm', 'data-fm-clear', false);
+  chipRow($('fMeals'), items, state.filterMeals, 'data-fm', 'data-fm-clear', false);
+}
+function renderFilterBrands(){
+  state.listBrands = state.listBrands.filter(id => BRAND_MAP[id] || id === '__nobrand__');
+  const noBrand = state.records.some(r => !r.brand || !BRAND_MAP[r.brand]);
+  const items = BRANDS.map(b => ({id: b.id, name: b.name}))
+    .concat(noBrand ? [{id:'__nobrand__', name:'未标注'}] : []);
+  chipRow($('fBrands'), items, state.listBrands, 'data-lb', 'data-lb-clear', false);
+}
+/* 标签行：按钮 + 已选标签小片（点小片 = 摘掉该标签） */
+function renderTagArea(){
+  const parts = [];
+  for (const id of state.filterMeals) if (MEAL_MAP[id] || id === '__none__')
+    parts.push({k:'meal', id, name: id === '__none__' ? '未标注' : MEAL_MAP[id].name});
+  for (const id of state.listCats) if (CAT_MAP[id])
+    parts.push({k:'cat', id, name: CAT_MAP[id].name});
+  for (const id of state.listBrands) if (BRAND_MAP[id] || id === '__nobrand__')
+    parts.push({k:'brand', id, name: id === '__nobrand__' ? '未标注' : BRAND_MAP[id].name});
+  $('tagArea').innerHTML =
+    '<button class="chip add' + (parts.length ? '' : ' on') + '" id="btnFilter">＋ 选择标签</button>' +
+    parts.map(p => '<button class="chip on" data-tag="' + p.k + ':' + p.id + '">' +
+      esc(p.name) + '<span class="x">&times;</span></button>').join('');
+}
+function afterTagChange(){
+  renderListCats();
+  renderFilterMeals();
+  renderFilterBrands();
+  renderTagArea();
+  renderList();
+}
+function openFilterSheet(){
+  afterTagChange();                      // 打开前先刷新三组标签
+  openSheet($('sheetFilter'));
 }
 
 function recSub(r){
   const bits = [];
   const mn = mealOf(r.meal);
   if (mn) bits.push(mn.name);
+  const bn = brandOf(r.brand);
+  if (bn) bits.push(bn.name);
   if (r.note) bits.push(esc(r.note));
   return bits.length ? bits.join(' · ') : '没写备注';
 }
@@ -1134,10 +1316,13 @@ function listRowsHTML(rows){
       lastKey = k;
     }
     const c = catOf(r.cat);
-    const purl = r.photo ? PHOTO_URL[r.photo] : null;
+    const rph = recPhotos(r);
+    const pid = rph[0];
+    const purl = pid ? PHOTO_URL[pid] : null;
     html += '<div class="day-row" data-edit="' + r.id + '">' +
       (purl
-        ? '<img class="thumb" src="' + purl + '" data-photo="' + r.photo + '" alt="">'
+        ? '<span class="thumbbox"><img class="thumb" src="' + purl + '" data-photo="' + pid + '" alt="">' +
+          (rph.length > 1 ? '<i class="pn">' + rph.length + '</i>' : '') + '</span>'
         : '<span class="dot" style="background:' + c.color + '"></span>') +
       '<div class="day-main">' +
         '<div class="day-name">' + c.icon + ' ' + esc(c.name) + '</div>' +
@@ -1150,50 +1335,45 @@ function listRowsHTML(rows){
 
 function listFiltered(){
   const q = state.query.trim().toLowerCase();
-  let all = [...state.records].sort((a, b) => b.ts - a.ts);
+  let all = [...listTimeAll()].sort((a, b) => b.ts - a.ts);   // 跟随明细页时间档位（全部=不限）
   if (state.listCats.length) all = all.filter(r => state.listCats.includes(r.cat));
   if (state.filterMeals.length) all = all.filter(r => state.filterMeals.includes(r.meal || '__none__'));
+  if (state.listBrands.length) all = all.filter(r => {
+    const b = r.brand && BRAND_MAP[r.brand] ? r.brand : '__nobrand__';   // 品牌被删掉的算「未标注」
+    return state.listBrands.includes(b);
+  });
   if (q) all = all.filter(r => {
     const c = catOf(r.cat);
     const mn = mealOf(r.meal);
+    const bn = brandOf(r.brand);
     return c.name.toLowerCase().includes(q) || (r.note || '').toLowerCase().includes(q) ||
-           (mn && mn.name.toLowerCase().includes(q));
+           (mn && mn.name.toLowerCase().includes(q)) || (bn && bn.name.toLowerCase().includes(q));
   });
   return all;
 }
 
 function openFullList(){
   const all = listFiltered();
-  const periodTxt = state.range === 'all' ? '全部时间' : rangeDates(state.range, state.anchor);
+  const periodTxt = listRangeText();
   $('fullCount').textContent = '共 ' + all.length + ' 条 · 合计 ¥' + fmt(sum(all)) +
     ' · ' + periodTxt +
-    (state.query.trim() || state.listCats.length || state.filterMeals.length ? ' · 已应用筛选' : '');
+    (state.query.trim() || state.listCats.length || state.filterMeals.length || state.listBrands.length
+      ? ' · 已应用筛选' : '');
   $('fullList').innerHTML = all.length ? listRowsHTML(all)
-    : '<div class="empty">' + (state.range !== 'all' ? '这个时间段没有记录' : '没有记录') + '</div>';
+    : '<div class="empty">' + ((state.listFrom || state.listTo) ? '这个时间段没有记录' : '没有记录') + '</div>';
   openSheet($('sheetFull'));
 }
 
 function renderList(){
   const all = listFiltered();
-  const dates = all.map(r => r.ts);
-  const parts = [];
-  if (state.filterMeals.length) parts.push(state.filterMeals.map(id => mealOf(id).name).join('+'));
-  if (state.listCats.length) parts.push(state.listCats.map(id => catOf(id).name).join('+'));
-  $('ltK').textContent =
-    (parts.length ? parts.join(' · ') : '全部记录') + (state.query.trim() ? ' · 搜索结果' : '');
-  $('ltReset').classList.toggle('hidden',
-    !(state.listCats.length || state.filterMeals.length || state.query));
-  $('ltV').textContent = '¥' + fmt(sum(all));
-  // 明细页是完整账本，不跟随时间档位：日期显示记录的实际跨度
-  $('ltS').textContent = all.length
-    ? all.length + ' 笔 · ' + new Set(all.map(r => r.cat)).size + ' 个分类 · ' +
-      md(new Date(Math.min(...dates)), false) + ' – ' + md(new Date(Math.max(...dates)), false)
-    : '还没有任何记录';
+  const hasFilter = !!(state.listCats.length || state.filterMeals.length || state.listBrands.length ||
+    state.query.trim() || state.listFrom || state.listTo);
+  $('ltReset').classList.toggle('hidden', !hasFilter);
 
   if (!all.length){
     $('recordList').innerHTML = '<div class="empty">' +
-      (state.query.trim() || state.listCats.length || state.filterMeals.length
-        ? '这个筛选条件下没有记录' : '还没有任何记录，去记第一笔吧') + '</div>';
+      ((state.listFrom || state.listTo) ? '这个时间段还没有记录'
+        : hasFilter ? '这个筛选条件下没有记录' : '还没有任何记录，去记第一笔吧') + '</div>';
     return;
   }
   const shown = all.slice(0, state.listLimit);
@@ -1250,9 +1430,11 @@ function renderCatDetail(catId){
 
   $('cdList').innerHTML = list.length ? list.map(r => {
     const d = new Date(r.ts);
-    const purl = r.photo ? PHOTO_URL[r.photo] : null;
+    const rph = recPhotos(r);
+    const pid = rph[0];
+    const purl = pid ? PHOTO_URL[pid] : null;
     return '<div class="cd-row">' +
-      (purl ? '<img src="' + purl + '" data-photo="' + r.photo + '" alt="">'
+      (purl ? '<img src="' + purl + '" data-photo="' + pid + '" alt="">'
             : '<span class="ph">' + c.icon + '</span>') +
       '<div class="cd-main">' +
         '<div class="cd-t">' + md(d) + '</div>' +
@@ -1379,8 +1561,15 @@ function closeOne(el){
   if (el) el.classList.remove('on');
   if (!document.querySelectorAll('.sheet.on').length) $('mask').classList.remove('on');
 }
+/* 头部关闭按钮通用规则：若头顶还叠着别的弹窗，先关最上面那层（别隔空把自己关了） */
+function closeSelfOrTop(s){
+  const open = [...document.querySelectorAll('.sheet.on')];
+  const i = open.indexOf(s);
+  if (i >= 0 && i < open.length - 1){ closeOne(open[open.length - 1]); return true; }
+  return false;                      // false = 自己就是最上层，调用方自行收尾
+}
 document.querySelectorAll('[data-closeone]').forEach(b =>
-  b.addEventListener('click', () => closeOne(b.closest('.sheet'))));
+  b.addEventListener('click', () => { if (!closeSelfOrTop(b.closest('.sheet'))) closeOne(b.closest('.sheet')); }));
 
 /* ---------- 图片 ---------- */
 let PHOTO_URL = {}, photoUrls = [];
@@ -1389,7 +1578,7 @@ function revokePhotoUrls(){ photoUrls.forEach(u => URL.revokeObjectURL(u)); phot
 async function syncPhotos(){
   revokePhotoUrls();
   PHOTO_URL = {};
-  const ids = [...new Set(state.records.map(r => r.photo).filter(Boolean))];
+  const ids = [...new Set(state.records.flatMap(recPhotos))];
   for (const id of ids){
     try{
       const p = await DB.getPhoto(id);
@@ -1406,53 +1595,56 @@ async function refresh(){
   await syncPhotos();
   render();
 }
-function compressImage(file, maxSide, quality){
-  return new Promise(resolve => {
-    const fallback = () => resolve(file);
-    if (typeof createImageBitmap !== 'function') return fallback();
-    createImageBitmap(file).then(bmp => {
-      try{
-        const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
-        const w = Math.max(1, Math.round(bmp.width * scale));
-        const h = Math.max(1, Math.round(bmp.height * scale));
-        const cv = document.createElement('canvas');
-        cv.width = w; cv.height = h;
-        cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
-        if (bmp.close) bmp.close();
-        cv.toBlob(b => resolve(b || file), 'image/jpeg', quality);
-      }catch(e){ fallback(); }
-    }).catch(fallback);
-  });
-}
-function setPhotoPreview(url){
-  if (state.photoPreview) URL.revokeObjectURL(state.photoPreview);
-  state.photoPreview = url;
+/* 照片按原图存（不压缩）；每笔最多 MAX_PHOTOS 张。
+   keepPhotos = 已在库里的（编辑时保留的），newPhotos = 本次新加还没入库的 */
+function resetPhotoDraft(){
+  state.newPhotos.forEach(p => URL.revokeObjectURL(p.url));
+  state.newPhotos = [];
+  state.keepPhotos = [];
 }
 function renderPhotoRow(){
   const row = $('photoRow');
-  const url = state.photoPreview || (state.photoId ? PHOTO_URL[state.photoId] : null);
-  row.innerHTML = url
-    ? '<div class="pthumb"><img src="' + url + '" alt="这顿的照片">' +
-      '<button id="photoDel" aria-label="移除照片">\u00D7</button></div>' +
-      '<button class="pbtn" id="photoPick">换一张</button>'
-    : '<button class="pbtn" id="photoPick">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
-      '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle cx="8.6" cy="10.5" r="1.6"/>' +
-      '<path d="M3.6 16.5l4.6-4 4 3.4 3-2.6 4.2 3.7"/></svg>' +
-      '拍张照 / 选图（选填）</button>';
-  $('photoPick').addEventListener('click', () => $('filePhoto').click());
-  const del = $('photoDel');
-  if (del) del.addEventListener('click', () => {
-    setPhotoPreview(null);
-    state.photoBlob = null;
-    state.photoId = null;
-    renderPhotoRow();
-  });
+  const total = state.keepPhotos.length + state.newPhotos.length;
+  const thumbs =
+    state.keepPhotos.map(id =>
+      '<div class="pthumb"><img src="' + (PHOTO_URL[id] || '') + '" data-keepid="' + id + '" alt="记录照片">' +
+      '<button data-keepdel="' + id + '" aria-label="移除照片">\u00D7</button></div>').join('') +
+    state.newPhotos.map(p =>
+      '<div class="pthumb"><img src="' + p.url + '" data-newid="' + p.id + '" alt="记录照片">' +
+      '<button data-newdel="' + p.id + '" aria-label="移除照片">\u00D7</button></div>').join('');
+  const addBtn = total < MAX_PHOTOS
+    ? '<button class="pbtn" id="photoPick">' +
+      (total
+        ? '再加一张（' + total + '/' + MAX_PHOTOS + '）'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
+          '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle cx="8.6" cy="10.5" r="1.6"/>' +
+          '<path d="M3.6 16.5l4.6-4 4 3.4 3-2.6 4.2 3.7"/></svg>' +
+          '拍张照 / 选图（选填，最多 ' + MAX_PHOTOS + ' 张）') + '</button>'
+    : '';
+  row.innerHTML = thumbs + addBtn;
 }
-function openLightbox(id){
-  const src = PHOTO_URL[id];
-  if (!src) return;
-  $('lbImg').src = src;
+/* 查看带图的记录时照片排最前；其余情况（新增/无图）照片排在备注后面 */
+function setPhotoRowPos(top){
+  const row = $('photoRow');
+  const si = row.closest('.sheet-in');
+  if (top) si.insertBefore(row, si.querySelector('.sheet-hd').nextSibling);
+  else si.insertBefore(row, $('btnSave'));
+}
+let lbList = [], lbIdx = 0, lbExtra = {};
+function lbShow(){
+  const id = lbList[lbIdx];
+  $('lbImg').src = lbExtra[id] || PHOTO_URL[id] || '';
+  const multi = lbList.length > 1;
+  $('lbIdx').textContent = multi ? (lbIdx + 1) + ' / ' + lbList.length : '';
+  $('lbPrev').classList.toggle('hidden', !multi);
+  $('lbNext').classList.toggle('hidden', !multi);
+}
+function openLightbox(id, list, extra){
+  lbExtra = extra || {};
+  lbList = (list && list.length) ? list.slice() : [id];
+  if (!lbList.includes(id)) lbList.unshift(id);
+  lbIdx = Math.max(0, lbList.indexOf(id));
+  lbShow();
   $('lightbox').classList.add('on');
 }
 
@@ -1469,24 +1661,26 @@ function renderPalette(){
 }
 function openCatEditor(id, fromPicker, mode){
   mode = mode || 'cat';
-  const isMeal = mode === 'meal';
-  const rec = id ? (isMeal ? MEAL_MAP[id] : CAT_MAP[id]) : null;
+  const isMeal = mode === 'meal', isBrand = mode === 'brand';
+  const plain = isMeal || isBrand;                        // 餐次/品牌都不要图标颜色
+  const rec = id ? (isMeal ? MEAL_MAP[id] : isBrand ? BRAND_MAP[id] : CAT_MAP[id]) : null;
 
   state.catMode = mode;
   state.catEditing = id || null;
   state.catFromPicker = !!fromPicker;
-  state.catIcon = (!isMeal && rec) ? rec.icon : '\u{1F374}';
-  state.catColor = (!isMeal && rec) ? rec.color : PALETTE[Math.floor(Math.random() * PALETTE.length)];
-  state.catHeavy = (!isMeal && rec) ? !!rec.heavy : false;
+  state.catIcon = (!plain && rec) ? rec.icon : '\u{1F374}';
+  state.catColor = (!plain && rec) ? rec.color : PALETTE[Math.floor(Math.random() * PALETTE.length)];
+  state.catHeavy = (!plain && rec) ? !!rec.heavy : false;
 
-  $('catEditTitle').textContent = (rec ? '编辑' : '新建') + (isMeal ? '餐次' : '分类');
+  $('catEditTitle').textContent = (rec ? '编辑' : '新建') + (isMeal ? '餐次' : isBrand ? '品牌' : '分类');
   $('catNameInput').value = rec ? rec.name : '';
-  $('catNameInput').placeholder = isMeal ? '餐次名称，比如「下午茶」' : '分类名称，比如「火锅」';
+  $('catNameInput').placeholder = isMeal ? '餐次名称，比如「下午茶」'
+    : isBrand ? '品牌名称，比如「麦当劳」' : '分类名称，比如「火锅」';
   $('catIconInput').value = state.catIcon;
   $('btnCatDel').classList.toggle('hidden', !rec);
   $('catHeavyTgl').classList.toggle('on', state.catHeavy);
-  $('catVisual').classList.toggle('hidden', isMeal);      // 餐次不需要图标和颜色
-  if (!isMeal){ renderEmojiPicks(); renderPalette(); }
+  $('catVisual').classList.toggle('hidden', plain);
+  if (!plain){ renderEmojiPicks(); renderPalette(); }
   openSheet($('sheetCatEdit'));
   if (!rec) setTimeout(() => $('catNameInput').focus(), 260);
 }
@@ -1516,14 +1710,20 @@ async function reloadCats(){
 
 /* ---------- 餐次（早餐/午餐/晚餐/夜宵，可自定义，无图标） ---------- */
 function renderMealChips(){
-  $('mealChips').innerHTML = MEALS.map(m =>
+  $('mealPickChips').innerHTML = MEALS.map(m =>
     '<button class="chip sm' + (state.meal === m.id ? ' on' : '') + '" data-meal="' + m.id + '">' +
     esc(m.name) + '</button>').join('') +
     '<button class="chip sm add" data-meal-add="1">\uFF0B 新建</button>';
 }
+function renderMealEntry(){
+  const m = mealOf(state.meal);
+  $('mealEntryText').textContent = m ? m.name : '请选择';
+  $('mealEntry').classList.toggle('picked', !!m);
+}
 function selectMeal(id){
   state.meal = MEAL_MAP[id] ? id : null;
   renderMealChips();
+  renderMealEntry();
 }
 function renderMealManage(){
   $('mealManageList').innerHTML = MEALS.length ? MEALS.map(m => {
@@ -1618,6 +1818,7 @@ async function persistMealOrder(ids){
 }
 enableDragSort($('catManageList'), persistCatOrder);
 enableDragSort($('mealManageList'), persistMealOrder);
+enableDragSort($('brandManageList'), persistBrandOrder);
 async function reloadMeals(){
   MEALS = await DB.allMeals();
   if (MEALS.some(m => typeof m.order !== 'number')){
@@ -1630,10 +1831,80 @@ async function reloadMeals(){
   renderMealManage();
   renderFilterMeals();
 }
+
+/* ---------- 品牌（麦当劳/肯德基这类标记，选填，无图标） ---------- */
+function renderBrandChips(){
+  $('brandPickChips').innerHTML = BRANDS.map(b =>
+    '<button class="chip sm' + (state.brand === b.id ? ' on' : '') + '" data-brand="' + b.id + '">' +
+    esc(b.name) + '</button>').join('') +
+    '<button class="chip sm add" data-brand-add="1">\uFF0B 新建</button>';
+}
+function renderBrandEntry(){
+  const b = brandOf(state.brand);
+  $('brandEntryText').textContent = b ? b.name : '未选择';
+  $('brandEntry').classList.toggle('picked', !!b);
+}
+function selectBrand(id){
+  state.brand = BRAND_MAP[id] ? id : null;    // 选填：再点一次同一个 = 取消
+  renderBrandChips();
+  renderBrandEntry();
+}
+function renderBrandManage(){
+  $('brandManageList').innerHTML = BRANDS.length ? BRANDS.map(b => {
+    const n = state.records.filter(r => r.brand === b.id).length;
+    return '<button class="cat-item" data-bredit="' + b.id + '">' +
+      '<span class="grip" data-grip aria-label="长按拖动排序">⋮⋮</span>' +
+      '<span class="cinfo"><span class="cname">' + esc(b.name) + '</span>' +
+      '<span class="cmeta">' + (n ? n + ' 笔记录' : '还没用过') + '</span></span>' +
+      '<span class="go">编辑</span></button>';
+  }).join('') : '<div class="note" style="padding:6px 2px">还没有品牌</div>';
+}
+async function reloadBrands(){
+  BRANDS = await DB.allBrands();
+  if (BRANDS.some(b => typeof b.order !== 'number')){
+    await Promise.all(BRANDS.map((b, i) => (b.order = i, DB.putBrand(b))));
+  }
+  BRANDS.sort((a, b) => (a.order || 0) - (b.order || 0));
+  BRAND_MAP = Object.fromEntries(BRANDS.map(b => [b.id, b]));
+  if (state.brand && !BRAND_MAP[state.brand]) state.brand = null;
+  if (state.listBrands.length) state.listBrands = state.listBrands.filter(id => BRAND_MAP[id] || id === '__nobrand__');
+  renderBrandChips();
+  renderBrandManage();
+  renderFilterBrands();
+}
+async function persistBrandOrder(ids){
+  if (ids.length !== BRANDS.length) return;
+  const map = Object.fromEntries(BRANDS.map(b => [b.id, b]));
+  BRANDS = ids.map(id => map[id]).filter(Boolean);
+  BRANDS.forEach((b, i) => b.order = i);
+  await Promise.all(BRANDS.map(b => DB.putBrand(b)));
+  renderBrandChips();
+  renderFilterBrands();
+  renderBrandManage();
+  toast('品牌顺序已保存');
+}
 async function saveCat(){
   const name = $('catNameInput').value.trim();
-  const isMeal = state.catMode === 'meal';
-  if (!name){ toast(isMeal ? '给餐次起个名字' : '给分类起个名字'); $('catNameInput').focus(); return; }
+  const isMeal = state.catMode === 'meal', isBrand = state.catMode === 'brand';
+  if (!name){
+    toast(isMeal ? '给餐次起个名字' : isBrand ? '给品牌起个名字' : '给分类起个名字');
+    $('catNameInput').focus(); return;
+  }
+
+  if (isBrand){
+    if (BRANDS.some(b => b.name === name && b.id !== state.catEditing)){ toast('已经有叫「' + name + '」的品牌了'); return; }
+    const id = state.catEditing || ('b' + uid());
+    const wasNew = !state.catEditing;
+    const order = state.catEditing ? (BRAND_MAP[id] ? BRAND_MAP[id].order : BRANDS.length) : BRANDS.length;
+    await DB.putBrand({id, name, order});
+    state.catEditing = null;
+    await reloadBrands();
+    if (state.catFromPicker) selectBrand(id);
+    closeOne($('sheetCatEdit'));
+    render();
+    toast(wasNew ? '品牌「' + name + '」已创建' : '品牌已更新');
+    return;
+  }
 
   if (isMeal){
     if (MEALS.some(m => m.name === name && m.id !== state.catEditing)){ toast('已经有叫「' + name + '」的餐次了'); return; }
@@ -1665,6 +1936,24 @@ async function saveCat(){
   toast(wasNew ? '分类「' + name + '」已创建' : '分类已更新');
 }
 async function deleteCat(id){
+  if (state.catMode === 'brand'){
+    const b = BRAND_MAP[id];
+    if (!b) return;
+    const used = state.records.filter(r => r.brand === id);
+    const msg = used.length
+      ? '删除品牌「' + b.name + '」？\n\n有 ' + used.length + ' 笔记录标着它，记录会保留，只清掉品牌标记。'
+      : '删除品牌「' + b.name + '」？';
+    if (!confirm(msg)) return;
+    for (const r of used){ r.brand = null; await DB.put(r); }
+    await DB.delBrand(id);
+    if (state.brand === id) state.brand = null;
+    state.catEditing = null;
+    await reloadBrands();
+    closeOne($('sheetCatEdit'));
+    await refresh();
+    toast('已删除品牌' + (used.length ? '，' + used.length + ' 笔记录的品牌标记已清掉' : ''));
+    return;
+  }
   if (state.catMode === 'meal'){
     const m = MEAL_MAP[id];
     if (!m) return;
@@ -1704,7 +1993,7 @@ async function deleteCat(id){
   await reloadCats();
   closeOne($('sheetCatEdit'));
   await refresh();
-  if (!CAT_MAP[state.cat]) selectCat(CATS.length ? CATS[0].id : '');
+  if (!CAT_MAP[state.cat]) selectCat('');   // 删掉的是当前选中项就清空，不再自动挑第一个
   toast('已删除，' + used.length + ' 笔记录转到「' + target.name + '」');
 }
 
@@ -1721,10 +2010,15 @@ function dataURLToBlob(d){
 }
 
 function renderCatPicker(){
-  $('catPicker').innerHTML = CATS.map(c =>
+  $('catPickGrid').innerHTML = CATS.map(c =>
     '<button class="cat" data-cat="' + c.id + '"><span class="ic">' + c.icon +
     '</span><span class="nm">' + esc(c.name) + '</span></button>').join('') +
     '<button class="cat add"><span class="ic">\uFF0B</span><span class="nm">新建</span></button>';
+}
+function renderCatEntry(){
+  const c = CAT_MAP[state.cat];
+  $('catEntryText').textContent = c ? c.icon + ' ' + c.name : '选择分类';
+  $('catEntry').classList.toggle('picked', !!c);
 }
 function initStatic(){
   renderCatPicker();
@@ -1733,9 +2027,13 @@ function initStatic(){
   $('quickAmts').innerHTML = QUICK.map(q => '<button data-amt="' + q + '">' + q + '</button>').join('');
 }
 function selectCat(id){
-  if (!CAT_MAP[id]) id = CATS.length ? CATS[0].id : '';
-  state.cat = id;
+  if (id === ''){ state.cat = ''; }         // 明确清空：初始不选，保存时必选
+  else {
+    if (!CAT_MAP[id]) id = CATS.length ? CATS[0].id : '';
+    state.cat = id;
+  }
   document.querySelectorAll('.cat').forEach(x => x.classList.toggle('on', x.dataset.cat === state.cat));
+  renderCatEntry();
 }
 
 function openAdd(){
@@ -1747,13 +2045,12 @@ function openAdd(){
   $('oldDateNote').classList.add('hidden');
   setAmount('');
   selectDate(dayKey(Date.now()));
-  setPhotoPreview(null);
-  state.photoBlob = null;
-  state.photoId = null;
+  resetPhotoDraft();
+  setPhotoRowPos(false);
   renderPhotoRow();
-  if (!CAT_MAP[state.cat] && CATS.length) state.cat = CATS[0].id;
-  selectCat(state.cat);
+  selectCat('');                            // 每次打开记一笔，分类都从「选择分类」开始
   selectMeal(null);
+  selectBrand(null);
   openSheet($('sheetAdd'));
 }
 function openEdit(id){
@@ -1781,11 +2078,12 @@ function openEdit(id){
     note.classList.remove('hidden');
   }
   renderDateRow();
-  setPhotoPreview(null);
-  state.photoBlob = null;
-  state.photoId = r.photo || null;
+  resetPhotoDraft();
+  state.keepPhotos = recPhotos(r).slice();
+  setPhotoRowPos(recPhotos(r).length > 0);   // 有图的记录：照片放最上面
   renderPhotoRow();
   selectMeal(r.meal || null);
+  selectBrand(r.brand || null);
   openSheet($('sheetAdd'));
 }
 
@@ -1797,20 +2095,17 @@ function applyTab(){
     (state.tab === 'list' ? 'list' : 'structure') === x.dataset.tab));
   $('view-structure').classList.toggle('hidden', state.tab !== 'structure');
   $('view-list').classList.toggle('hidden', state.tab !== 'list');
+  document.querySelector('header').classList.toggle('listmode', state.tab === 'list');
+  $('chipsWrap').classList.toggle('hidden', state.tab === 'list');   // 明细页不放日周月年
   render();
   window.scrollTo({top:0});
 }
 $('chips').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b) return;
   setChipOn(b.dataset.r);
-  if (b.dataset.r === 'list'){
-    state.tab = 'list';                 // 明细：完整账本，不跟随时间档位
-  } else {
-    state.tab = 'structure';
-    state.range = b.dataset.r;
-    state.anchor = 0;
-  }
-  applyTab();
+  state.range = b.dataset.r;
+  state.anchor = 0;
+  render();
 });
 $('pgPrev').addEventListener('click', () => { state.anchor--; render(); });
 $('pgNext').addEventListener('click', () => { if (state.anchor < 0){ state.anchor++; render(); } });
@@ -1840,24 +2135,39 @@ $('dateRow').addEventListener('click', e => {
   selectDate(b.dataset.date);
 });
 document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => {
-  if (b.dataset.tab === 'list'){
-    state.tab = 'list';
-    setChipOn('list');
-  } else {
-    state.tab = 'structure';
-    setChipOn(state.range);
-  }
+  state.tab = b.dataset.tab;
   applyTab();
 }));
 
 $('btnAdd').addEventListener('click', openAdd);
 $('btnSettings').addEventListener('click', openSettings);
-$('mask').addEventListener('click', closeSheets);
-document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
-$('catPicker').addEventListener('click', e => {
+$('mask').addEventListener('click', () => {
+  const open = document.querySelectorAll('.sheet.on');
+  if (open.length) closeOne(open[open.length - 1]);   // 叠着开时只关最上层，别把底下没填完的记一笔一起带走
+  else closeSheets();
+});
+document.querySelectorAll('[data-close]').forEach(b =>
+  b.addEventListener('click', () => { if (!closeSelfOrTop(b.closest('.sheet'))) closeSheets(); }));
+/* 记一笔三个入口：分类 / 哪一餐 / 品牌，都点开选单选 */
+$('catEntry').addEventListener('click', () => {
+  renderCatPicker();
+  openSheet($('sheetCatPick'));
+});
+$('catPickGrid').addEventListener('click', e => {
   const b = e.target.closest('.cat'); if (!b) return;
   if (b.classList.contains('add')){ openCatEditor(null, true); return; }
   selectCat(b.dataset.cat);
+  closeOne($('sheetCatPick'));              // 选完收起，回去继续填
+});
+$('mealEntry').addEventListener('click', () => {
+  renderMealChips();
+  openSheet($('sheetMealPick'));
+});
+$('mealPickChips').addEventListener('click', e => {
+  if (e.target.closest('[data-meal-add]')){ openCatEditor(null, true, 'meal'); return; }
+  const b = e.target.closest('[data-meal]'); if (!b) return;
+  selectMeal(b.dataset.meal);               // 餐次必填：选完即收，不提供取消
+  closeOne($('sheetMealPick'));
 });
 $('quickAmts').addEventListener('click', e => {
   const b = e.target.closest('[data-amt]'); if (!b) return;
@@ -1866,6 +2176,8 @@ $('quickAmts').addEventListener('click', e => {
 $('amountInput').addEventListener('input', e => { state.amount = e.target.value; syncAmountUI(); });
 $('noteInput').addEventListener('input', e => { state.note = e.target.value; });
 $('searchInput').addEventListener('input', e => { state.query = e.target.value; renderList(); });
+$('listFrom').addEventListener('change', e => { state.listFrom = e.target.value || ''; renderList(); });
+$('listTo').addEventListener('change', e => { state.listTo = e.target.value || ''; renderList(); });
 
 $('donut').addEventListener('click', e => {
   const seg = e.target.closest('[data-cat]');
@@ -1875,46 +2187,74 @@ $('catList').addEventListener('click', e => {
   const row = e.target.closest('[data-cat]');
   if (row) openCatDetail(row.dataset.cat);
 });
-$('listCats').addEventListener('click', e => {
+$('fCats').addEventListener('click', e => {
   if (e.target.closest('[data-lc-clear]')){
     state.listCats = [];
-    renderListCats(); renderList();
+    afterTagChange();
     toast('已清除分类筛选');
     return;
   }
   const b = e.target.closest('[data-lc]'); if (!b) return;
   const i = state.listCats.indexOf(b.dataset.lc);
   if (i >= 0) state.listCats.splice(i, 1); else state.listCats.push(b.dataset.lc);
-  renderListCats();
-  renderList();
+  afterTagChange();
 });
-$('filterMeals').addEventListener('click', e => {
+$('fMeals').addEventListener('click', e => {
   if (e.target.closest('[data-fm-clear]')){
     state.filterMeals = [];
-    renderFilterMeals(); renderList();
+    afterTagChange();
     toast('已清除餐次筛选');
     return;
   }
   const b = e.target.closest('[data-fm]'); if (!b) return;
   const i = state.filterMeals.indexOf(b.dataset.fm);
   if (i >= 0) state.filterMeals.splice(i, 1); else state.filterMeals.push(b.dataset.fm);
-  renderFilterMeals();
-  renderList();
+  afterTagChange();
+});
+$('fBrands').addEventListener('click', e => {
+  if (e.target.closest('[data-lb-clear]')){
+    state.listBrands = [];
+    afterTagChange();
+    toast('已清除品牌筛选');
+    return;
+  }
+  const b = e.target.closest('[data-lb]'); if (!b) return;
+  const i = state.listBrands.indexOf(b.dataset.lb);
+  if (i >= 0) state.listBrands.splice(i, 1); else state.listBrands.push(b.dataset.lb);
+  afterTagChange();
+});
+$('tagArea').addEventListener('click', e => {
+  if (e.target.closest('#btnFilter')){ openFilterSheet(); return; }
+  const b = e.target.closest('[data-tag]'); if (!b) return;
+  const c = b.dataset.tag.split(':');
+  const arr = c[0] === 'meal' ? state.filterMeals : c[0] === 'cat' ? state.listCats : state.listBrands;
+  const i = arr.indexOf(c[1]);
+  if (i >= 0) arr.splice(i, 1);
+  afterTagChange();
 });
 $('ltReset').addEventListener('click', () => {
   state.listCats = [];
   state.filterMeals = [];
+  state.listBrands = [];
   state.query = '';
+  state.listFrom = '';
+  state.listTo = '';
   $('searchInput').value = '';
-  renderListCats();
-  renderFilterMeals();
-  renderList();
+  $('listFrom').value = '';
+  $('listTo').value = '';
+  afterTagChange();
   toast('已重置全部筛选');
 });
-$('mealChips').addEventListener('click', e => {
-  if (e.target.closest('[data-meal-add]')){ openCatEditor(null, true, 'meal'); return; }
-  const b = e.target.closest('[data-meal]'); if (!b) return;
-  selectMeal(b.dataset.meal);
+/* 记一笔：品牌收成入口按钮，点开选单看全部品牌再选 */
+$('brandEntry').addEventListener('click', () => {
+  renderBrandChips();
+  openSheet($('sheetBrandPick'));
+});
+$('brandPickChips').addEventListener('click', e => {
+  if (e.target.closest('[data-brand-add]')){ openCatEditor(null, true, 'brand'); return; }
+  const b = e.target.closest('[data-brand]'); if (!b) return;
+  selectBrand(state.brand === b.dataset.brand ? null : b.dataset.brand);
+  closeOne($('sheetBrandPick'));            // 选完就收起，回去继续填
 });
 $('cdList').addEventListener('click', e => {
   const ph = e.target.closest('[data-photo]');
@@ -1924,9 +2264,16 @@ $('cdList').addEventListener('click', e => {
 $('btnSave').addEventListener('click', async () => {
   const cents = toCents(state.amount);
   if (cents <= 0) return;
+  if (!state.cat){                                      // 分类必选
+    toast('先选一下分类');
+    renderCatPicker();
+    openSheet($('sheetCatPick'));
+    return;
+  }
   if (!state.meal){                                    // 餐次必填
     toast('先选一下这是哪一餐');
-    $('mealChips').scrollIntoView({block:'center', behavior:'smooth'});
+    renderMealChips();
+    openSheet($('sheetMealPick'));
     return;
   }
 
@@ -1940,13 +2287,14 @@ $('btnSave').addEventListener('click', async () => {
     ts = old ? old.ts : base.getTime();   // 日期条选不到的旧记录：保持原日期
   }
 
-  if (state.photoBlob && state.photoId) await DB.putPhoto({id: state.photoId, blob: state.photoBlob});
+  for (const p of state.newPhotos) await DB.putPhoto({id: p.id, blob: p.blob});
+  const photoIds = [...state.keepPhotos, ...state.newPhotos.map(p => p.id)];
 
   const rec = {id: state.editing || (String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7)),
                amt: cents, cat: state.cat, ts, note: state.note.trim(),
-               photo: state.photoId || null, meal: state.meal || null};
+               photos: photoIds, meal: state.meal || null, brand: state.brand || null};
   await DB.put(rec);
-  if (old && old.photo && old.photo !== rec.photo) await DB.delPhoto(old.photo);
+  if (old) for (const pid of recPhotos(old)) if (!photoIds.includes(pid)) await DB.delPhoto(pid);
 
   state.editing = null;
   await refresh();
@@ -1963,19 +2311,34 @@ $('btnSave').addEventListener('click', async () => {
 $('recordList').addEventListener('click', e => {
   if (e.target.closest('#btnMoreList')){ openFullList(); return; }
   const ph = e.target.closest('[data-photo]');
-  if (ph){ openLightbox(ph.dataset.photo); return; }
+  if (ph){
+    const row = e.target.closest('[data-edit]');
+    const r = row && state.records.find(x => x.id === row.dataset.edit);
+    openLightbox(ph.dataset.photo, r ? recPhotos(r) : null);
+    return;
+  }
   const row = e.target.closest('[data-edit]');
   if (row) openEdit(row.dataset.edit);
 });
 $('fullList').addEventListener('click', e => {
   const ph = e.target.closest('[data-photo]');
-  if (ph){ openLightbox(ph.dataset.photo); return; }
+  if (ph){
+    const row = e.target.closest('[data-edit]');
+    const r = row && state.records.find(x => x.id === row.dataset.edit);
+    openLightbox(ph.dataset.photo, r ? recPhotos(r) : null);
+    return;
+  }
   const row = e.target.closest('[data-edit]');
   if (row) openEdit(row.dataset.edit);
 });
 $('cdList').addEventListener('click', e => {
   const ph = e.target.closest('[data-photo]');
-  if (ph){ openLightbox(ph.dataset.photo); return; }
+  if (ph){
+    const row = e.target.closest('[data-edit]');
+    const r = row && state.records.find(x => x.id === row.dataset.edit);
+    openLightbox(ph.dataset.photo, r ? recPhotos(r) : null);
+    return;
+  }
   const row = e.target.closest('[data-edit]');
   if (row) openEdit(row.dataset.edit);
 });
@@ -1984,7 +2347,7 @@ $('btnDeleteInSheet').addEventListener('click', async () => {
   if (!state.editing) return;
   const rec = state.records.find(x => x.id === state.editing);
   await DB.del(state.editing);
-  if (rec && rec.photo) await DB.delPhoto(rec.photo);
+  if (rec) for (const pid of recPhotos(rec)) await DB.delPhoto(pid);
   state.editing = null;
   await refresh();
   closeSheets();
@@ -2009,7 +2372,7 @@ $('startDateInput').addEventListener('change', async e => {
 });
 
 /* ---------- 检查更新 ---------- */
-const APP_VER = {code: 10, name: "1.1.1"};
+const APP_VER = {code: 10000, name: "1.0.0"};
 function openExternal(url){
   const a = document.createElement('a');
   a.href = url; a.target = '_blank'; a.rel = 'noopener';
@@ -2065,7 +2428,33 @@ $('themeSeg').addEventListener('click', async e => {
   applyTheme();
 });
 
-$('btnCats').addEventListener('click', () => { renderCatManage(); openSheet($('sheetCats')); });
+/* 分类管理：入口菜单 → 点进去只看一组，页面不再一长条 */
+function updateManageCounts(){
+  $('mgCatText').textContent = '伙食分类（' + CATS.length + '）';
+  $('mgMealText').textContent = '餐次（' + MEALS.length + '）';
+  $('mgBrandText').textContent = '品牌（' + BRANDS.length + '）';
+}
+function showManageMenu(){
+  $('manageMenu').classList.remove('hidden');
+  $('manageBody').classList.add('hidden');
+  updateManageCounts();
+}
+$('manageMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-mgrp]');
+  if (!b) return;
+  document.querySelectorAll('#manageBody .mgrp').forEach(x =>
+    x.classList.toggle('hidden', x.dataset.msec !== b.dataset.mgrp));
+  $('manageMenu').classList.add('hidden');
+  $('manageBody').classList.remove('hidden');
+});
+$('btnManageBack').addEventListener('click', showManageMenu);
+/* 标题栏「返回」逐层退：编辑框 → 组列表 → 菜单 → 设置 */
+$('btnCatsBack').addEventListener('click', () => {
+  if ($('sheetCatEdit').classList.contains('on')){ closeOne($('sheetCatEdit')); return; }
+  if (!$('manageBody').classList.contains('hidden')){ showManageMenu(); return; }
+  closeOne($('sheetCats'));
+});
+$('btnCats').addEventListener('click', () => { renderCatManage(); showManageMenu(); openSheet($('sheetCats')); });
 $('btnNewCat').addEventListener('click', () => openCatEditor(null, false, 'cat'));
 $('catManageList').addEventListener('click', e => {
   const b = e.target.closest('[data-cedit]'); if (b) openCatEditor(b.dataset.cedit, false, 'cat');
@@ -2073,6 +2462,10 @@ $('catManageList').addEventListener('click', e => {
 $('btnNewMeal').addEventListener('click', () => openCatEditor(null, false, 'meal'));
 $('mealManageList').addEventListener('click', e => {
   const b = e.target.closest('[data-medit]'); if (b) openCatEditor(b.dataset.medit, false, 'meal');
+});
+$('btnNewBrand').addEventListener('click', () => openCatEditor(null, false, 'brand'));
+$('brandManageList').addEventListener('click', e => {
+  const b = e.target.closest('[data-bredit]'); if (b) openCatEditor(b.dataset.bredit, false, 'brand');
 });
 $('btnCatSave').addEventListener('click', saveCat);
 $('btnCatDel').addEventListener('click', () => { if (state.catEditing) deleteCat(state.catEditing); });
@@ -2096,19 +2489,117 @@ $('catIconInput').addEventListener('input', e => {
   renderEmojiPicks();
 });
 
-$('filePhoto').addEventListener('change', async e => {
-  const f = e.target.files && e.target.files[0];
+$('filePhoto').addEventListener('change', e => {
+  const fs = [...(e.target.files || [])];
   e.target.value = '';
-  if (!f) return;
-  try{
-    const blob = await compressImage(f, 800, 0.65);
-    state.photoBlob = blob;
-    state.photoId = uid();
-    setPhotoPreview(URL.createObjectURL(blob));
+  if (!fs.length) return;
+  const room = MAX_PHOTOS - state.keepPhotos.length - state.newPhotos.length;
+  if (room <= 0){ toast('一笔最多 ' + MAX_PHOTOS + ' 张照片'); return; }
+  let added = 0;
+  for (const f of fs){
+    if (added >= room) break;
+    if (!f.type || f.type.indexOf('image/') !== 0) continue;   // 原图直接入库，不压缩
+    state.newPhotos.push({id: uid(), blob: f, url: URL.createObjectURL(f)});
+    added++;
+  }
+  if (added < fs.length) toast('一笔最多 ' + MAX_PHOTOS + ' 张，多出的没有加上');
+  if (added) renderPhotoRow();
+});
+/* 记一笔里的照片缩略图：查看大图 / 删除 / 添加（事件委托，缩略图是动态渲染的） */
+$('photoRow').addEventListener('click', e => {
+  if (e.target.closest('#photoPick')){ $('filePhoto').click(); return; }
+  const pv = e.target.closest('[data-keepid],[data-newid]');
+  if (pv){
+    const ids = [...state.keepPhotos, ...state.newPhotos.map(p => p.id)];
+    const extra = {};
+    for (const p of state.newPhotos) extra[p.id] = p.url;
+    openLightbox(pv.dataset.keepid || pv.dataset.newid, ids, extra);
+    return;
+  }
+  const kd = e.target.closest('[data-keepdel]');
+  if (kd){
+    state.keepPhotos = state.keepPhotos.filter(x => x !== kd.dataset.keepdel);
     renderPhotoRow();
-  }catch(err){ toast('这张图读不出来'); }
+    return;
+  }
+  const nd = e.target.closest('[data-newdel]');
+  if (nd){
+    const p = state.newPhotos.find(x => x.id === nd.dataset.newdel);
+    if (p) URL.revokeObjectURL(p.url);
+    state.newPhotos = state.newPhotos.filter(x => x.id !== nd.dataset.newdel);
+    renderPhotoRow();
+  }
+});
+/* 设置 → 照片总览（支持批量管理：多选删除，只摘照片不删记录） */
+function galItems(){
+  const items = [];
+  for (const r of state.records) for (const pid of recPhotos(r)) items.push({pid, ts: r.ts});
+  return items.sort((a, b) => b.ts - a.ts);
+}
+function renderGalleryItems(){
+  const items = galItems();
+  $('galleryGrid').innerHTML = items.length
+    ? items.map(it => '<div class="gitem' + (galSel && galSelIds.has(it.pid) ? ' sel' : '') +
+        '" data-gpid="' + it.pid + '">' +
+        '<img loading="lazy" src="' + (PHOTO_URL[it.pid] || '') + '" alt="记录照片">' +
+        '<i class="gcheck">&#10003;</i></div>').join('')
+    : '<div class="empty">还没有照片，记一笔的时候拍几张吧</div>';
+}
+function updateGalBar(){
+  $('btnGalDel').textContent = '删除所选（' + galSelIds.size + '）';
+  $('btnGalDel').disabled = !galSelIds.size;
+}
+function setGalSel(on){
+  galSel = on;
+  if (!on) galSelIds.clear();
+  $('btnGalSel').textContent = on ? '取消' : '批量管理';
+  $('galBar').classList.toggle('hidden', !on);
+  $('galHint').classList.toggle('hidden', !on);
+  updateGalBar();
+  renderGalleryItems();
+}
+function openGallery(){
+  setGalSel(false);
+  const items = galItems();
+  $('galleryCount').textContent = items.length ? '共 ' + items.length + ' 张 · 按时间从新到旧' : '';
+  openSheet($('sheetGallery'));
+}
+$('btnGallery').addEventListener('click', openGallery);
+let galSel = false, galSelIds = new Set();
+$('btnGalSel').addEventListener('click', () => setGalSel(!galSel));
+$('galleryGrid').addEventListener('click', e => {
+  const g = e.target.closest('[data-gpid]');
+  if (!g) return;
+  const pid = g.dataset.gpid;
+  if (galSel){
+    if (galSelIds.has(pid)) galSelIds.delete(pid); else galSelIds.add(pid);
+    g.classList.toggle('sel', galSelIds.has(pid));
+    updateGalBar();
+    return;
+  }
+  openLightbox(pid, galItems().map(it => it.pid));
+});
+$('btnGalDel').addEventListener('click', async () => {
+  if (!galSelIds.size) return;
+  const n = galSelIds.size;
+  if (!confirm('删除选中的 ' + n + ' 张照片？\n\n只是把照片从记录里拿掉，记录本身不会删。')) return;
+  for (const pid of galSelIds){
+    const owners = state.records.filter(r => recPhotos(r).includes(pid));
+    for (const r of owners){
+      r.photos = recPhotos(r).filter(x => x !== pid);
+      await DB.put(r);
+    }
+    await DB.delPhoto(pid);
+  }
+  setGalSel(false);
+  await refresh();
+  const items = galItems();
+  $('galleryCount').textContent = items.length ? '共 ' + items.length + ' 张 · 按时间从新到旧' : '';
+  toast('已删除 ' + n + ' 张照片，记录不受影响');
 });
 $('lbClose').addEventListener('click', () => $('lightbox').classList.remove('on'));
+$('lbPrev').addEventListener('click', () => { if (lbList.length < 2) return; lbIdx = (lbIdx - 1 + lbList.length) % lbList.length; lbShow(); });
+$('lbNext').addEventListener('click', () => { if (lbList.length < 2) return; lbIdx = (lbIdx + 1) % lbList.length; lbShow(); });
 $('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') $('lightbox').classList.remove('on'); });
 
 function download(blob, name){
@@ -2121,7 +2612,7 @@ function download(blob, name){
 const stamp = () => { const d = new Date(); return d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()); };
 
 $('btnExport').addEventListener('click', async () => {
-  const ids = [...new Set(state.records.map(r => r.photo).filter(Boolean))];
+  const ids = [...new Set(state.records.flatMap(recPhotos))];
   const photos = {};
   for (const id of ids){
     try{
@@ -2129,21 +2620,23 @@ $('btnExport').addEventListener('click', async () => {
       if (p && p.blob) photos[id] = await blobToDataURL(p.blob);
     }catch(e){}
   }
-  const data = {v:4, app:'mealmeter', exportedAt:new Date().toISOString(),
-    budget:state.budget, startDate:state.startDate || '', cats:CATS, meals:MEALS,
+  const data = {v:5, app:'mealmeter', exportedAt:new Date().toISOString(),
+    budget:state.budget, startDate:state.startDate || '', cats:CATS, meals:MEALS, brands:BRANDS,
     records:[...state.records].sort((a, b) => a.ts - b.ts), photos};
   download(new Blob([JSON.stringify(data)], {type:'application/json'}), '大胃袋备份-' + stamp() + '.json');
   toast('已导出 ' + state.records.length + ' 条' + (ids.length ? ' · ' + ids.length + ' 张图' : ''));
 });
 
 $('btnExportCsv').addEventListener('click', () => {
-  const rows = [['日期','时间','餐次','分类','金额','高油高糖','备注']];
+  const rows = [['日期','时间','餐次','分类','品牌','金额','高油高糖','备注']];
   for (const r of [...state.records].sort((a, b) => a.ts - b.ts)){
     const d = new Date(r.ts);
     const c = catOf(r.cat);
     const mn = mealOf(r.meal);
+    const bn = brandOf(r.brand);
     rows.push([dayKey(r.ts), pad(d.getHours()) + ':' + pad(d.getMinutes()), mn ? mn.name : '', c.name,
-      (r.amt / 100).toFixed(2), c.heavy ? '是' : '', (r.note || '').replace(/[",\n]/g, ' ')]);
+      bn ? bn.name : '', (r.amt / 100).toFixed(2), c.heavy ? '是' : '',
+      (r.note || '').replace(/[",\n]/g, ' ')]);
   }
   const csv = '\ufeff' + rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\r\n');
   download(new Blob([csv], {type:'text/csv;charset=utf-8'}), '大胃袋-' + stamp() + '.csv');
@@ -2181,6 +2674,14 @@ $('fileImport').addEventListener('change', async e => {
       }
       await reloadMeals();
     }
+    if (Array.isArray(data.brands)){
+      for (const b of data.brands){
+        if (!b || !b.id || !b.name) continue;
+        await DB.putBrand({id: String(b.id), name: String(b.name).slice(0, 10),
+          order: typeof b.order === 'number' ? b.order : undefined});
+      }
+      await reloadBrands();
+    }
     if (data.photos && typeof data.photos === 'object'){
       for (const [id, d] of Object.entries(data.photos)){
         try{ await DB.putPhoto({id, blob:dataURLToBlob(d)}); }catch(err){}
@@ -2194,8 +2695,10 @@ $('fileImport').addEventListener('change', async e => {
       await DB.put({id: String(r.id || uid()), amt, ts,
         cat: CAT_MAP[r.cat] ? r.cat : (CATS[0] ? CATS[0].id : 'other'),
         note: typeof r.note === 'string' ? r.note.slice(0, 40) : '',
-        photo: r.photo ? String(r.photo) : null,
-        meal: MEAL_MAP[r.meal] ? r.meal : null});
+        photos: Array.isArray(r.photos) ? r.photos.map(String).slice(0, MAX_PHOTOS)
+                : (r.photo ? [String(r.photo)] : []),
+        meal: MEAL_MAP[r.meal] ? r.meal : null,
+        brand: BRAND_MAP[r.brand] ? r.brand : null});
       n++;
     }
     if (!state.budget && data.budget){ state.budget = Math.round(Number(data.budget)) || 0; await DB.setMeta('budget', state.budget); }
@@ -2227,6 +2730,9 @@ $('btnClear').addEventListener('click', async () => {
   try{ canaryPrev = localStorage.getItem('mm_lastSeen'); }catch(e){}
   try{
     state.records = await DB.all();
+    for (const r of state.records){                    // 旧数据迁移：单图 photo → photos 数组
+      if (r.photo && !r.photos){ r.photos = [r.photo]; delete r.photo; await DB.put(r); }
+    }
     let cats = await DB.allCats();
     if (!cats.length){
       for (const [i, c] of SEED_CATS.entries()) await DB.putCat({...c, order: i});
@@ -2237,6 +2743,11 @@ $('btnClear').addEventListener('click', async () => {
       for (const [i, m] of SEED_MEALS.entries()) await DB.putMeal({...m, order: i});
     }
     await reloadMeals();           // 同上
+    let brands = await DB.allBrands();
+    if (!brands.length){
+      for (const [i, b] of SEED_BRANDS.entries()) await DB.putBrand({...b, order: i});
+    }
+    await reloadBrands();
     state.budget = Math.round(Number(await DB.getMeta('budget'))) || 0;
     state.startDate = (await DB.getMeta('startDate')) || '';
     state.theme = (await DB.getMeta('theme')) || 'auto';
@@ -2244,7 +2755,7 @@ $('btnClear').addEventListener('click', async () => {
   }catch(e){
     toast('本机存储不可用，请用浏览器打开');
   }
-  state.cat = CATS.length ? CATS[0].id : '';
+  state.cat = '';
   applyTheme();
   initStatic();
   renderCatManage();
