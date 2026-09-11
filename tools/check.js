@@ -117,7 +117,9 @@ console.log('\n[3] 函数定义与调用');
     'FileReader', 'Promise', 'Error', 'indexedDB', 'Uint8Array', 'Intl', 'RegExp', 'Symbol',
     'parseFloat', 'parseInt', 'isFinite', 'isNaN', 'setTimeout', 'clearTimeout', 'setInterval', 'requestAnimationFrame',
     'confirm', 'alert', 'atob', 'btoa', 'encodeURIComponent', 'decodeURIComponent',
-    'createImageBitmap', 'URLSearchParams', 'matchMedia', 'structuredClone', 'queueMicrotask'
+    'createImageBitmap', 'URLSearchParams', 'matchMedia', 'structuredClone', 'queueMicrotask',
+    'fetch', 'localStorage', 'sessionStorage', 'navigator', 'location', 'document', 'window', 'history',
+    'AbortController', 'FormData', 'Headers', 'Request', 'Response', 'crypto', 'customElements'
   ]);
   const called = [...new Set([...code.matchAll(/(?<![.\w'"`])([a-zA-Z_$][\w$]*)\s*\(/g)].map(x => x[1]))];
   const undef = called.filter(n => !defined.has(n) && !BUILTIN.has(n));
