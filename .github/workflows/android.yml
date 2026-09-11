@@ -44,8 +44,16 @@ jobs:
       - name: 同步 web 资源到 Android 工程
         run: npx cap sync android
 
+      - name: 解码签名密钥
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > android/app/mealmeter-release.keystore
+
       - name: 编译 APK
         working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace

@@ -7,8 +7,8 @@ android {
         applicationId "com.mealmeter.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 9
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,22 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // 签名密钥不入仓库：CI 从 Secrets 解码到 app/ 目录，密码走环境变量。
+    // 本地没有密钥文件时退回默认调试签名（仅自用调试）。
+    def keystoreFile = file('mealmeter-release.keystore')
     signingConfigs {
-        debug {
-            storeFile file('mealmeter-debug.keystore')
-            storePassword 'mealmeter2026'
-            keyAlias 'mealmeter'
-            keyPassword 'mealmeter2026'
+        mealmeter {
+            storeFile keystoreFile
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ''
+            keyAlias System.getenv("KEY_ALIAS") ?: 'mealmeter'
+            keyPassword System.getenv("KEYSTORE_PASSWORD") ?: ''
         }
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            if (keystoreFile.exists()) signingConfig signingConfigs.mealmeter
         }
         release {
+            if (keystoreFile.exists()) signingConfig signingConfigs.mealmeter
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
         }
     }
 }
